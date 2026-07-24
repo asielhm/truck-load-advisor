@@ -245,6 +245,22 @@
       "La publicación pública no incluye la tarifa bruta, por lo que todavía no se pueden calcular la ganancia ni la puntuación de recomendación.",
     "This record was entered manually from a public listing summary. Rate, broker and contact details were not published.":
       "Este registro fue ingresado manualmente desde un resumen público. No se publicaron la tarifa, el broker ni los datos de contacto.",
+
+    "Searching available loads": "Buscando cargas disponibles",
+    "Evaluating loads": "Evaluando cargas",
+    "Results will update automatically.": "Los resultados se actualizarán automáticamente.",
+    "View recommended load": "Ver carga recomendada",
+    "No matching loads": "No hay cargas coincidentes",
+    "Adjust the search filters to see a recommendation.":
+      "Ajustá los filtros de búsqueda para ver una recomendación.",
+    "No recommendation": "Sin recomendación",
+    "There are no visible loads under the current filters and deadhead limit.":
+      "No hay cargas visibles con los filtros y el límite de millas vacías actuales.",
+    "Rate data required": "Se necesitan datos de tarifa",
+    "Public summary": "Resumen público",
+    "Waiting for rate data": "Esperando datos de tarifas",
+    "The visible loads do not include gross rates, so profitability cannot be ranked yet.":
+      "Las cargas visibles no incluyen tarifas brutas, por lo que todavía no se pueden ordenar por rentabilidad.",
     "Low score": "Puntuación baja"
   };
 

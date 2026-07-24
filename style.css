@@ -1826,3 +1826,30 @@ p {
 .metric strong:has(+ .rate-unavailable) {
   color: var(--muted);
 }
+
+
+.hero-load-button {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 11px;
+  color: white;
+  background: rgba(255, 255, 255, 0.09);
+  font-size: 0.8rem;
+  font-weight: 820;
+  cursor: pointer;
+}
+
+.hero-load-button:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.top-awaiting-rate .score-ring {
+  color: #f3c96b;
+  border-color: rgba(243, 201, 107, 0.5);
+}
+
+.top-awaiting-rate .hero-metrics strong {
+  color: #f4e6bd;
+}

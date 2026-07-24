@@ -90,7 +90,7 @@
           </div>
         </div>
 
-        <aside class="hero-panel" aria-label="Top recommendation preview">
+        <aside class="hero-panel" id="topRecommendationPanel" aria-label="Top recommendation preview">
           <div class="panel-topline">
             <span>Top recommendation</span>
             <span class="status-pill demo-pill" id="heroDataMode">Demo data</span>
@@ -98,38 +98,42 @@
 
           <div class="featured-route">
             <div>
-              <strong>Dallas, TX</strong>
-              <span>Pickup today</span>
+              <strong id="topOrigin">Loading…</strong>
+              <span id="topPickup">Searching available loads</span>
             </div>
             <div class="route-arrow">→</div>
             <div>
-              <strong>Atlanta, GA</strong>
-              <span>Dry Van</span>
+              <strong id="topDestination">—</strong>
+              <span id="topEquipment">—</span>
             </div>
           </div>
 
           <div class="hero-metrics">
             <div>
               <span>Gross</span>
-              <strong>$2,450</strong>
+              <strong id="topGross">—</strong>
             </div>
             <div>
               <span>Total miles</span>
-              <strong>808 mi</strong>
+              <strong id="topMiles">—</strong>
             </div>
             <div>
               <span>Est. profit</span>
-              <strong>$1,117</strong>
+              <strong id="topProfit">—</strong>
             </div>
           </div>
 
           <div class="score-preview">
-            <div class="score-ring">92</div>
+            <div class="score-ring" id="topScore">—</div>
             <div>
-              <strong>Excellent fit</strong>
-              <span>Low deadhead · strong reload market</span>
+              <strong id="topRecommendationLabel">Evaluating loads</strong>
+              <span id="topRecommendationReason">Results will update automatically.</span>
             </div>
           </div>
+
+          <button class="hero-load-button hidden" id="topRecommendationButton" type="button">
+            View recommended load
+          </button>
         </aside>
       </div>
     </section>

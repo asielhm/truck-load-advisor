@@ -65,6 +65,18 @@ const elements = {
   loadModalContent: document.getElementById("loadModalContent"),
   heroDataMode: document.getElementById("heroDataMode"),
   searchDataMode: document.getElementById("searchDataMode"),
+  topRecommendationPanel: document.getElementById("topRecommendationPanel"),
+  topOrigin: document.getElementById("topOrigin"),
+  topPickup: document.getElementById("topPickup"),
+  topDestination: document.getElementById("topDestination"),
+  topEquipment: document.getElementById("topEquipment"),
+  topGross: document.getElementById("topGross"),
+  topMiles: document.getElementById("topMiles"),
+  topProfit: document.getElementById("topProfit"),
+  topScore: document.getElementById("topScore"),
+  topRecommendationLabel: document.getElementById("topRecommendationLabel"),
+  topRecommendationReason: document.getElementById("topRecommendationReason"),
+  topRecommendationButton: document.getElementById("topRecommendationButton"),
   adminNavLink: document.getElementById("adminNavLink"),
   adminSection: document.getElementById("admin"),
   adminLoadForm: document.getElementById("adminLoadForm"),
@@ -111,6 +123,7 @@ let currentProfile = null;
 let currentDataMode = "demo";
 let profileSaveTimer = null;
 let loadsRealtimeChannel = null;
+let currentTopRecommendationId = null;
 let autocompleteState = {
   origin: { index: -1, matches: [] },
   destination: { index: -1, matches: [] }
@@ -720,12 +733,101 @@ function sortLoads(loadsToSort) {
   return sorted;
 }
 
+function translated(text) {
+  return window.TLA_I18N?.translateString(text) || text;
+}
+
+function clearTopRecommendation() {
+  currentTopRecommendationId = null;
+  elements.topOrigin.textContent = translated("No matching loads");
+  elements.topPickup.textContent = translated("Adjust the search filters to see a recommendation.");
+  elements.topDestination.textContent = "—";
+  elements.topEquipment.textContent = "—";
+  elements.topGross.textContent = "—";
+  elements.topMiles.textContent = "—";
+  elements.topProfit.textContent = "—";
+  elements.topScore.textContent = "—";
+  elements.topRecommendationLabel.textContent = translated("No recommendation");
+  elements.topRecommendationReason.textContent = translated(
+    "There are no visible loads under the current filters and deadhead limit."
+  );
+  elements.topRecommendationButton.classList.add("hidden");
+  elements.topRecommendationPanel.classList.remove("top-awaiting-rate");
+}
+
+function showTopAwaitingRate(loads) {
+  const nearest = [...loads].sort(
+    (a, b) => Number(a.totalMiles || Infinity) - Number(b.totalMiles || Infinity)
+  )[0];
+
+  currentTopRecommendationId = nearest?.id ?? null;
+  elements.topOrigin.textContent = nearest?.origin || translated("Rate data required");
+  elements.topPickup.textContent = nearest?.pickup || translated("Public summary");
+  elements.topDestination.textContent = nearest?.destination || "—";
+  elements.topEquipment.textContent = nearest?.equipment || "—";
+  elements.topGross.textContent = translated("Rate unavailable");
+  elements.topMiles.textContent = nearest
+    ? `${Number(nearest.totalMiles || 0).toLocaleString(
+        window.TLA_I18N?.getLocale() || "en-US"
+      )} mi`
+    : "—";
+  elements.topProfit.textContent = "—";
+  elements.topScore.textContent = "—";
+  elements.topRecommendationLabel.textContent = translated("Waiting for rate data");
+  elements.topRecommendationReason.textContent = translated(
+    "The visible loads do not include gross rates, so profitability cannot be ranked yet."
+  );
+  elements.topRecommendationButton.classList.toggle("hidden", !nearest);
+  elements.topRecommendationPanel.classList.add("top-awaiting-rate");
+}
+
+function renderTopRecommendation(calculatedLoads) {
+  if (!calculatedLoads.length) {
+    clearTopRecommendation();
+    return;
+  }
+
+  const loadsWithRates = calculatedLoads.filter(load => load.hasRate);
+
+  if (!loadsWithRates.length) {
+    showTopAwaitingRate(calculatedLoads);
+    return;
+  }
+
+  const topLoad = [...loadsWithRates].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (b.profit !== a.profit) return b.profit - a.profit;
+    return a.deadhead - b.deadhead;
+  })[0];
+
+  const recommendation = recommendationData(topLoad);
+  currentTopRecommendationId = topLoad.id;
+
+  elements.topOrigin.textContent = topLoad.origin;
+  elements.topPickup.textContent = topLoad.pickup;
+  elements.topDestination.textContent = topLoad.destination;
+  elements.topEquipment.textContent = topLoad.equipment;
+  elements.topGross.textContent = currency(topLoad.gross);
+  elements.topMiles.textContent =
+    `${Number(topLoad.totalMiles || 0).toLocaleString(
+      window.TLA_I18N?.getLocale() || "en-US"
+    )} mi`;
+  elements.topProfit.textContent = currency(topLoad.profit);
+  elements.topScore.textContent = String(topLoad.score);
+  elements.topRecommendationLabel.textContent = translated(recommendation.label);
+  elements.topRecommendationReason.textContent = translated(recommendation.reason);
+  elements.topRecommendationButton.classList.remove("hidden");
+  elements.topRecommendationPanel.classList.remove("top-awaiting-rate");
+}
+
 function render() {
   const calculated = activeLoads.map(calculateLoad);
   const maxDeadhead = Math.max(Number(elements.maxDeadhead.value) || 0, 0);
   const eligible = calculated.filter(load => load.deadhead <= maxDeadhead);
   const sorted = sortLoads(eligible);
   const type = currentDataMode === "live" ? "online" : "demonstration";
+
+  renderTopRecommendation(eligible);
 
   elements.resultCount.textContent =
     `${sorted.length} ${type} load${sorted.length === 1 ? "" : "s"} match your filters`;
@@ -1465,6 +1567,11 @@ elements.loadList.addEventListener("click", event => {
   const button = event.target.closest("[data-load-id]");
   if (!button) return;
   showLoadDetails(button.dataset.loadId);
+});
+
+elements.topRecommendationButton.addEventListener("click", () => {
+  if (currentTopRecommendationId == null) return;
+  showLoadDetails(currentTopRecommendationId);
 });
 
 elements.loginButton.addEventListener("click", () => openAuth("signin"));
