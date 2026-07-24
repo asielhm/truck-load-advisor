@@ -9,12 +9,13 @@
   />
   <meta name="theme-color" content="#071a2c" />
   <title>TruckLoad Advisor</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
   <div class="prototype-banner">
-    Supabase authentication is connected. Freight remains demonstration data until authorized live-load feeds are added.
+    Supabase accounts are connected. Live freight will appear after authorized provider integrations are approved and configured.
   </div>
 
   <header class="site-header">
@@ -34,6 +35,7 @@
         <a href="#loads">Find Loads</a>
         <a href="#pricing">Pricing</a>
         <a href="#data-sources">Data Sources</a>
+        <a class="hidden" id="adminNavLink" href="#admin">Admin</a>
       </nav>
 
       <div class="account-actions">
@@ -63,21 +65,21 @@
           </p>
 
           <div class="hero-actions">
-            <a class="button button-primary" href="#loads">Search demo loads</a>
+            <a class="button button-primary" href="#loads">Search loads</a>
             <a class="button button-ghost" href="#pricing">View membership plans</a>
           </div>
 
           <div class="hero-trust">
             <span>✓ Mobile-first</span>
             <span>✓ Personalized costs</span>
-            <span>✓ Live feeds planned</span>
+            <span>✓ Supabase online data</span>
           </div>
         </div>
 
         <aside class="hero-panel" aria-label="Top recommendation preview">
           <div class="panel-topline">
             <span>Top recommendation</span>
-            <span class="status-pill demo-pill">Demo data</span>
+            <span class="status-pill demo-pill" id="heroDataMode">Demo data</span>
           </div>
 
           <div class="featured-route">
@@ -127,7 +129,7 @@
               <h2>Search available loads</h2>
               <p>Start typing a city or state and select a matching location.</p>
             </div>
-            <span class="status-pill demo-pill">Sample loads</span>
+            <span class="status-pill demo-pill" id="searchDataMode">Sample loads</span>
           </div>
 
           <form class="search-grid" id="searchForm" autocomplete="off">
@@ -221,7 +223,7 @@
             <div class="card compact-card">
               <h3>Account status</h3>
               <div id="sidebarAccountState">
-                <p>Create a secure account to save your operating profile and selected plan online.</p>
+                <p>Create a secure account to save your operating profile online.</p>
                 <button class="text-button" id="sidebarSignupButton" type="button">Create account →</button>
               </div>
             </div>
@@ -231,7 +233,7 @@
             <div class="results-header">
               <div>
                 <h2>Recommended loads</h2>
-                <p id="resultCount">Loading sample freight…</p>
+                <p id="resultCount">Loading freight…</p>
               </div>
 
               <select class="sort-select" id="sortBy" aria-label="Sort loads">
@@ -254,8 +256,8 @@
           <p class="eyebrow dark-eyebrow">Membership</p>
           <h2>Simple pricing for owner-operators and fleets.</h2>
           <p>
-            Launch prices are positioned below many premium load-board tools while charging
-            for profitability analysis, alerts, and multi-source organization.
+            Launch prices are intended for profitability analysis, alerts, saved preferences,
+            and organization of authorized freight sources.
           </p>
           <div class="billing-note">14-day free trial · Cancel anytime · Prices in USD</div>
         </div>
@@ -318,8 +320,8 @@
         </div>
 
         <p class="pricing-disclaimer">
-          Prototype pricing only. Billing is not active yet. Final plans may change after API,
-          infrastructure, support, and licensing costs are confirmed.
+          Billing is not active yet. Final plans may change after API, infrastructure,
+          licensing, and support costs are confirmed.
         </p>
       </div>
     </section>
@@ -327,11 +329,12 @@
     <section class="data-section" id="data-sources">
       <div class="container data-grid">
         <div>
-          <p class="eyebrow dark-eyebrow">Live-data roadmap</p>
-          <h2>Built to replace demonstration freight with authorized online data.</h2>
+          <p class="eyebrow dark-eyebrow">Live-data architecture</p>
+          <h2>Prepared for authorized freight integrations.</h2>
           <p class="section-copy">
-            The interface already consumes a separate load-data file. The same front end can later
-            receive normalized freight from approved load-board APIs, direct brokers, and shipper feeds.
+            GitHub Pages displays the application, while Supabase stores users and normalized
+            loads. Provider credentials must remain in a Supabase Edge Function, never in this
+            public browser code.
           </p>
         </div>
 
@@ -339,23 +342,190 @@
           <div class="source-item">
             <span class="source-icon pending">1</span>
             <div>
-              <strong>Current: local demonstration feed</strong>
-              <p>Fictional freight from <code>loads.json</code> proves the search and ranking workflow.</p>
+              <strong>Supabase online load table</strong>
+              <p>Authenticated users automatically receive available, non-expired loads from the database.</p>
             </div>
           </div>
           <div class="source-item">
             <span class="source-icon planned">2</span>
             <div>
-              <strong>Next: approved API integrations</strong>
-              <p>Connect only sources whose contracts permit search, display, recommendations, and booking links.</p>
+              <strong>Truckstop, 123Loadboard, DAT and RXO</strong>
+              <p>Each integration requires provider approval, credentials, and its permitted display rules.</p>
             </div>
           </div>
           <div class="source-item">
             <span class="source-icon planned">3</span>
             <div>
-              <strong>Later: real-time normalization</strong>
-              <p>Remove duplicates, verify expiration, calculate routes, and preserve the original source.</p>
+              <strong>Scheduled synchronization</strong>
+              <p>A protected Edge Function will import, normalize, deduplicate, update, and expire freight automatically.</p>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section hidden" id="admin">
+      <div class="container">
+        <div class="admin-heading">
+          <div>
+            <p class="eyebrow dark-eyebrow">Administrator</p>
+            <h2>Manage online loads and sources</h2>
+            <p>
+              Your approved administrator account can create or edit loads and request a source
+              synchronization. Provider sync remains inactive until credentials are configured.
+            </p>
+          </div>
+          <span class="status-pill admin-pill">Admin access</span>
+        </div>
+
+        <div class="provider-panel">
+          <div class="provider-panel-header">
+            <div>
+              <h3>Provider connections</h3>
+              <p>Credentials are stored only in Supabase Edge Function secrets.</p>
+            </div>
+            <button class="button button-secondary small-button" id="syncProvidersButton" type="button">
+              Sync providers
+            </button>
+          </div>
+          <div class="provider-grid" id="providerGrid">
+            <div class="provider-card"><strong>Truckstop</strong><span class="provider-status pending">Pending credentials</span></div>
+            <div class="provider-card"><strong>123Loadboard</strong><span class="provider-status pending">Pending approval</span></div>
+            <div class="provider-card"><strong>DAT</strong><span class="provider-status pending">Pending approval</span></div>
+            <div class="provider-card"><strong>RXO</strong><span class="provider-status pending">Pending credentials</span></div>
+          </div>
+          <p class="form-message" id="providerSyncMessage"></p>
+        </div>
+
+        <div class="admin-grid">
+          <form class="admin-form" id="adminLoadForm" autocomplete="off">
+            <input id="adminLoadId" type="hidden" />
+
+            <div class="admin-form-header">
+              <div>
+                <h3 id="adminFormTitle">Create an online load</h3>
+                <p>Enter only freight that you have permission to display.</p>
+              </div>
+              <button class="text-button hidden" id="cancelLoadEdit" type="button">Cancel edit</button>
+            </div>
+
+            <div class="form-two-columns">
+              <div class="field">
+                <label for="adminSourceName">Source name</label>
+                <input id="adminSourceName" type="text" required placeholder="Direct broker" />
+              </div>
+              <div class="field">
+                <label for="adminSourceLoadId">Source load ID</label>
+                <input id="adminSourceLoadId" type="text" required placeholder="LOAD-1001" />
+              </div>
+            </div>
+
+            <div class="form-two-columns">
+              <div class="field">
+                <label for="adminOrigin">Origin</label>
+                <input id="adminOrigin" type="text" required list="adminCityList" placeholder="Dallas, TX" />
+              </div>
+              <div class="field">
+                <label for="adminDestination">Destination</label>
+                <input id="adminDestination" type="text" required list="adminCityList" placeholder="Atlanta, GA" />
+              </div>
+            </div>
+
+            <datalist id="adminCityList"></datalist>
+
+            <div class="form-three-columns">
+              <div class="field">
+                <label for="adminEquipment">Equipment</label>
+                <select id="adminEquipment" required>
+                  <option value="Dry Van">Dry Van</option>
+                  <option value="Reefer">Reefer</option>
+                  <option value="Flatbed">Flatbed</option>
+                  <option value="Power Only">Power Only</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="adminGrossRate">Gross rate</label>
+                <input id="adminGrossRate" type="number" min="0" step="1" required />
+              </div>
+              <div class="field">
+                <label for="adminWeight">Weight (lb)</label>
+                <input id="adminWeight" type="number" min="0" step="100" />
+              </div>
+            </div>
+
+            <div class="form-three-columns">
+              <div class="field">
+                <label for="adminLoadedMiles">Loaded miles</label>
+                <input id="adminLoadedMiles" type="number" min="1" step="1" required />
+              </div>
+              <div class="field">
+                <label for="adminDeadheadMiles">Deadhead miles</label>
+                <input id="adminDeadheadMiles" type="number" min="0" step="1" value="0" required />
+              </div>
+              <div class="field">
+                <label for="adminTolls">Estimated tolls</label>
+                <input id="adminTolls" type="number" min="0" step="1" value="0" />
+              </div>
+            </div>
+
+            <div class="form-two-columns">
+              <div class="field">
+                <label for="adminPickupAt">Pickup time</label>
+                <input id="adminPickupAt" type="datetime-local" />
+              </div>
+              <div class="field">
+                <label for="adminDeliveryAt">Delivery time</label>
+                <input id="adminDeliveryAt" type="datetime-local" />
+              </div>
+            </div>
+
+            <div class="form-two-columns">
+              <div class="field">
+                <label for="adminBrokerName">Broker name</label>
+                <input id="adminBrokerName" type="text" />
+              </div>
+              <div class="field">
+                <label for="adminBrokerMc">Broker MC number</label>
+                <input id="adminBrokerMc" type="text" placeholder="MC-123456" />
+              </div>
+            </div>
+
+            <div class="form-three-columns">
+              <div class="field">
+                <label for="adminDestinationQuality">Destination score</label>
+                <input id="adminDestinationQuality" type="number" min="0" max="100" value="70" />
+              </div>
+              <div class="field">
+                <label for="adminStatus">Status</label>
+                <select id="adminStatus">
+                  <option value="available">Available</option>
+                  <option value="reserved">Reserved</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="adminExpiresAt">Expires at</label>
+                <input id="adminExpiresAt" type="datetime-local" />
+              </div>
+            </div>
+
+            <button class="button button-primary full-button" id="saveAdminLoadButton" type="submit">
+              Publish load
+            </button>
+            <p class="form-message" id="adminLoadMessage"></p>
+          </form>
+
+          <div class="admin-loads-panel">
+            <div class="admin-loads-header">
+              <div>
+                <h3>Loads stored in Supabase</h3>
+                <p id="adminLoadCount">Loading…</p>
+              </div>
+              <button class="button button-secondary small-button" id="refreshAdminLoads" type="button">
+                Refresh
+              </button>
+            </div>
+            <div class="admin-load-list" id="adminLoadList"></div>
           </div>
         </div>
       </div>
@@ -369,8 +539,8 @@
         <p>Prototype for a future U.S. carrier decision-support platform.</p>
       </div>
       <p class="footer-disclaimer">
-        Demonstration only. Loads are fictional. The website is not currently a freight broker,
-        load board, payment processor, or transportation offer.
+        Demonstration and development environment. External load data may only be displayed
+        under authorization from its original provider.
       </p>
     </div>
   </footer>
@@ -388,7 +558,7 @@
         <p class="eyebrow dark-eyebrow">Secure registration</p>
         <h2 id="authTitle">Create your account</h2>
         <p class="modal-copy">
-          Your account will be created with Supabase Auth. You may need to confirm your email before signing in.
+          Your account is managed by Supabase Auth. You may need to confirm your email before signing in.
         </p>
 
         <form id="registerForm">

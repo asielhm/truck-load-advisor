@@ -1,14 +1,32 @@
 const CONFIG = {
-  dataMode: "demo",
   localLoadsFile: "loads.json",
   localCitiesFile: "cities.json",
-  // Later, replace with your secure backend endpoint, never a private API key in browser code.
-  liveLoadsEndpoint: ""
+  syncFunctionName: "sync-load-sources"
 };
 
 const STORAGE_KEYS = {
   profile: "truckLoadAdvisorOperatingProfile"
 };
+
+const SUPABASE_URL = "https://iirptoelyjunzvzoudcj.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_SNS4H3Y85BLrYAoYvsttVA_V4GYPMvc";
+const APP_URL = "https://asielhm.github.io/truck-load-advisor/";
+
+if (!window.supabase?.createClient) {
+  throw new Error("Supabase could not be loaded from the CDN.");
+}
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
+);
 
 const elements = {
   loadList: document.getElementById("loadList"),
@@ -44,12 +62,52 @@ const elements = {
   selectedPlan: document.getElementById("selectedPlan"),
   loadModal: document.getElementById("loadModal"),
   closeLoadModal: document.getElementById("closeLoadModal"),
-  loadModalContent: document.getElementById("loadModalContent")
+  loadModalContent: document.getElementById("loadModalContent"),
+  heroDataMode: document.getElementById("heroDataMode"),
+  searchDataMode: document.getElementById("searchDataMode"),
+  adminNavLink: document.getElementById("adminNavLink"),
+  adminSection: document.getElementById("admin"),
+  adminLoadForm: document.getElementById("adminLoadForm"),
+  adminLoadId: document.getElementById("adminLoadId"),
+  adminFormTitle: document.getElementById("adminFormTitle"),
+  cancelLoadEdit: document.getElementById("cancelLoadEdit"),
+  adminSourceName: document.getElementById("adminSourceName"),
+  adminSourceLoadId: document.getElementById("adminSourceLoadId"),
+  adminOrigin: document.getElementById("adminOrigin"),
+  adminDestination: document.getElementById("adminDestination"),
+  adminCityList: document.getElementById("adminCityList"),
+  adminEquipment: document.getElementById("adminEquipment"),
+  adminGrossRate: document.getElementById("adminGrossRate"),
+  adminWeight: document.getElementById("adminWeight"),
+  adminLoadedMiles: document.getElementById("adminLoadedMiles"),
+  adminDeadheadMiles: document.getElementById("adminDeadheadMiles"),
+  adminTolls: document.getElementById("adminTolls"),
+  adminPickupAt: document.getElementById("adminPickupAt"),
+  adminDeliveryAt: document.getElementById("adminDeliveryAt"),
+  adminBrokerName: document.getElementById("adminBrokerName"),
+  adminBrokerMc: document.getElementById("adminBrokerMc"),
+  adminDestinationQuality: document.getElementById("adminDestinationQuality"),
+  adminStatus: document.getElementById("adminStatus"),
+  adminExpiresAt: document.getElementById("adminExpiresAt"),
+  saveAdminLoadButton: document.getElementById("saveAdminLoadButton"),
+  adminLoadMessage: document.getElementById("adminLoadMessage"),
+  adminLoadList: document.getElementById("adminLoadList"),
+  adminLoadCount: document.getElementById("adminLoadCount"),
+  refreshAdminLoads: document.getElementById("refreshAdminLoads"),
+  syncProvidersButton: document.getElementById("syncProvidersButton"),
+  providerGrid: document.getElementById("providerGrid"),
+  providerSyncMessage: document.getElementById("providerSyncMessage")
 };
 
+let demoLoads = [];
 let allLoads = [];
 let activeLoads = [];
 let cities = [];
+let currentUser = null;
+let currentProfile = null;
+let currentDataMode = "demo";
+let profileSaveTimer = null;
+let loadsRealtimeChannel = null;
 let autocompleteState = {
   origin: { index: -1, matches: [] },
   destination: { index: -1, matches: [] }
@@ -60,11 +118,11 @@ function currency(value) {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0
-  }).format(value);
+  }).format(Number(value) || 0);
 }
 
 function escapeHtml(value) {
-  return String(value)
+  return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -72,39 +130,164 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function formatDate(value, fallback = "Appointment pending") {
+  if (!value) return fallback;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return fallback;
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
+function toLocalDateTimeInput(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+function splitCityState(value) {
+  const parts = String(value || "").split(",").map(part => part.trim());
+  return {
+    city: parts[0] || "",
+    state: parts[1] || ""
+  };
+}
+
 async function fetchJson(url) {
   const response = await fetch(url, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Could not load ${url}: ${response.status}`);
-  }
+  if (!response.ok) throw new Error(`Could not load ${url}: ${response.status}`);
   return response.json();
 }
 
-async function loadInitialData() {
+function setDataMode(mode) {
+  currentDataMode = mode;
+  const isLive = mode === "live";
+  const text = isLive ? "Online loads" : "Demo data";
+  elements.heroDataMode.textContent = text;
+  elements.searchDataMode.textContent = text;
+  elements.heroDataMode.classList.toggle("live-pill", isLive);
+  elements.searchDataMode.classList.toggle("live-pill", isLive);
+  elements.heroDataMode.classList.toggle("demo-pill", !isLive);
+  elements.searchDataMode.classList.toggle("demo-pill", !isLive);
+}
+
+async function loadBaseData() {
   try {
     const [loadedLoads, loadedCities] = await Promise.all([
       fetchJson(CONFIG.localLoadsFile),
       fetchJson(CONFIG.localCitiesFile)
     ]);
 
-    allLoads = Array.isArray(loadedLoads) ? loadedLoads : [];
+    demoLoads = Array.isArray(loadedLoads) ? loadedLoads : [];
     cities = Array.isArray(loadedCities) ? loadedCities : [];
-    activeLoads = [...allLoads];
-    render();
+    elements.adminCityList.innerHTML = cities
+      .map(city => `<option value="${escapeHtml(city)}"></option>`)
+      .join("");
+
+    useDemoLoads();
   } catch (error) {
     console.error(error);
-    elements.resultCount.textContent = "The sample-data files could not be loaded.";
+    elements.resultCount.textContent = "The local data files could not be loaded.";
     elements.loadList.innerHTML = `
       <div class="error-state">
         <strong>Data files are missing.</strong>
-        <div>Upload <code>loads.json</code> and <code>cities.json</code> to the same GitHub folder as this page.</div>
+        <div>Upload <code>loads.json</code> and <code>cities.json</code> to the same GitHub folder.</div>
       </div>
     `;
   }
 }
 
+function useDemoLoads() {
+  allLoads = [...demoLoads];
+  activeLoads = [...allLoads];
+  setDataMode("demo");
+  render();
+}
+
+function mapDatabaseLoad(row) {
+  return {
+    id: row.id,
+    source: row.source_name,
+    sourceLoadId: row.source_load_id,
+    sourceUrl: row.source_url || "",
+    status: row.status || "available",
+    origin: `${row.origin_city}, ${row.origin_state}`,
+    destination: `${row.destination_city}, ${row.destination_state}`,
+    equipment: row.equipment,
+    gross: Number(row.gross_rate || 0),
+    loadedMiles: Number(row.loaded_miles || 0),
+    deadhead: Number(row.deadhead_miles || 0),
+    weight: row.weight_lbs ? `${Number(row.weight_lbs).toLocaleString()} lb` : "Weight not listed",
+    pickup: formatDate(row.pickup_at),
+    delivery: formatDate(row.delivery_at),
+    pickupAt: row.pickup_at,
+    deliveryAt: row.delivery_at,
+    destinationQuality: Number(row.destination_quality ?? 70),
+    tolls: Number(row.tolls || 0),
+    broker: row.broker_name || "Broker not listed",
+    brokerMc: row.broker_mc_number || "",
+    expiresAt: row.expires_at,
+    isOnline: true
+  };
+}
+
+async function loadOnlineLoads() {
+  if (!currentUser) {
+    useDemoLoads();
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("loads")
+    .select("*")
+    .order("pickup_at", { ascending: true, nullsFirst: false });
+
+  if (error) {
+    console.error("Could not load online freight:", error);
+    useDemoLoads();
+    return;
+  }
+
+  const onlineLoads = (data || []).map(mapDatabaseLoad);
+  if (onlineLoads.length) {
+    allLoads = onlineLoads;
+    activeLoads = [...onlineLoads];
+    setDataMode("live");
+    render();
+  } else {
+    useDemoLoads();
+  }
+}
+
+function subscribeToLoadChanges() {
+  if (loadsRealtimeChannel) {
+    supabaseClient.removeChannel(loadsRealtimeChannel);
+    loadsRealtimeChannel = null;
+  }
+
+  if (!currentUser) return;
+
+  loadsRealtimeChannel = supabaseClient
+    .channel("public-loads-changes")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "loads" },
+      () => {
+        loadOnlineLoads();
+        if (currentProfile?.is_admin) loadAdminLoads();
+      }
+    )
+    .subscribe();
+}
+
 function normalizeSearch(value) {
-  return value.trim().toLowerCase();
+  return String(value || "").trim().toLowerCase();
 }
 
 function cityMatches(query) {
@@ -130,7 +313,7 @@ function cityMatches(query) {
 }
 
 function highlightMatch(city, query) {
-  const normalized = query.trim();
+  const normalized = String(query || "").trim();
   if (!normalized) return escapeHtml(city);
 
   const index = city.toLowerCase().indexOf(normalized.toLowerCase());
@@ -190,7 +373,6 @@ function setupAutocomplete(input, menu, key) {
 
   input.addEventListener("keydown", event => {
     if (!menu.classList.contains("open")) return;
-
     const options = [...menu.querySelectorAll(".autocomplete-option")];
     if (!options.length) return;
 
@@ -222,25 +404,24 @@ function setupAutocomplete(input, menu, key) {
   });
 
   document.addEventListener("click", event => {
-    if (!input.contains(event.target) && !menu.contains(event.target)) {
-      close();
-    }
+    if (!input.contains(event.target) && !menu.contains(event.target)) close();
   });
 }
 
 function calculateLoad(load) {
   const costPerMile = Math.max(Number(elements.costPerMile.value) || 0, 0);
-  const totalMiles = load.loadedMiles + load.deadhead;
-  const estimatedCost = totalMiles * costPerMile + (load.tolls || 0);
-  const profit = load.gross - estimatedCost;
-  const grossPerTotalMile = load.gross / totalMiles;
-  const netPerTotalMile = profit / totalMiles;
-  const deadheadPenalty = Math.min((load.deadhead / 180) * 20, 20);
+  const totalMiles = Number(load.loadedMiles || 0) + Number(load.deadhead || 0);
+  const estimatedCost = totalMiles * costPerMile + Number(load.tolls || 0);
+  const profit = Number(load.gross || 0) - estimatedCost;
+  const grossPerTotalMile = totalMiles > 0 ? Number(load.gross || 0) / totalMiles : 0;
+  const netPerTotalMile = totalMiles > 0 ? profit / totalMiles : 0;
+  const deadheadPenalty = Math.min((Number(load.deadhead || 0) / 180) * 20, 20);
   const profitScore = Math.min(Math.max((netPerTotalMile / 1.6) * 45, 0), 45);
-  const marketScore = ((load.destinationQuality || 50) / 100) * 25;
+  const marketScore = ((Number(load.destinationQuality || 50)) / 100) * 25;
   const rateScore = Math.min((grossPerTotalMile / 3.2) * 20, 20);
   const equipmentBonus =
-    elements.preferredEquipment.value && load.equipment === elements.preferredEquipment.value ? 5 : 0;
+    elements.preferredEquipment.value &&
+    load.equipment === elements.preferredEquipment.value ? 5 : 0;
 
   const score = Math.round(
     Math.max(
@@ -286,6 +467,7 @@ function recommendationData(load) {
 
 function loadCard(load) {
   const recommendation = recommendationData(load);
+  const sourceLabel = load.isOnline ? load.source : `${load.source} · Demo`;
 
   return `
     <article class="load-card">
@@ -299,14 +481,14 @@ function loadCard(load) {
             <span class="arrow">→</span>
             <div class="route-city">
               <strong>${escapeHtml(load.destination)}</strong>
-              <span>Destination score ${load.destinationQuality}/100</span>
+              <span>Destination score ${Number(load.destinationQuality || 0)}/100</span>
             </div>
           </div>
 
           <div class="load-meta">
             <span class="tag">${escapeHtml(load.equipment)}</span>
             <span class="tag">${escapeHtml(load.weight)}</span>
-            <span class="tag">${escapeHtml(load.source)}</span>
+            <span class="tag">${escapeHtml(sourceLabel)}</span>
             <span class="tag">${escapeHtml(load.status)}</span>
           </div>
         </div>
@@ -348,12 +530,10 @@ function loadCard(load) {
 
 function sortLoads(loadsToSort) {
   const sorted = [...loadsToSort];
-
   if (elements.sortBy.value === "profit") sorted.sort((a, b) => b.profit - a.profit);
   if (elements.sortBy.value === "rate") sorted.sort((a, b) => b.gross - a.gross);
   if (elements.sortBy.value === "deadhead") sorted.sort((a, b) => a.deadhead - b.deadhead);
   if (elements.sortBy.value === "score") sorted.sort((a, b) => b.score - a.score);
-
   return sorted;
 }
 
@@ -362,9 +542,10 @@ function render() {
   const maxDeadhead = Math.max(Number(elements.maxDeadhead.value) || 0, 0);
   const eligible = calculated.filter(load => load.deadhead <= maxDeadhead);
   const sorted = sortLoads(eligible);
+  const type = currentDataMode === "live" ? "online" : "demonstration";
 
   elements.resultCount.textContent =
-    `${sorted.length} demonstration load${sorted.length === 1 ? "" : "s"} match your filters`;
+    `${sorted.length} ${type} load${sorted.length === 1 ? "" : "s"} match your filters`;
 
   if (!sorted.length) {
     elements.loadList.innerHTML = `
@@ -389,37 +570,12 @@ function filterLoads() {
     const originMatch = !origin || load.origin.toLowerCase().includes(origin);
     const destinationMatch = !destination || load.destination.toLowerCase().includes(destination);
     const equipmentMatch = !equipment || load.equipment === equipment;
-    const rateMatch = load.gross >= minRate;
-
+    const rateMatch = Number(load.gross || 0) >= minRate;
     return originMatch && destinationMatch && equipmentMatch && rateMatch;
   });
 
   render();
 }
-
-const SUPABASE_URL = "https://iirptoelyjunzvzoudcj.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_SNS4H3Y85BLrYAoYvsttVA_V4GYPMvc";
-const APP_URL = "https://asielhm.github.io/truck-load-advisor/";
-
-if (!window.supabase?.createClient) {
-  throw new Error("Supabase could not be loaded from the CDN.");
-}
-
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
-    }
-  }
-);
-
-let currentUser = null;
-let currentProfile = null;
-let profileSaveTimer = null;
 
 function localProfileValues() {
   return {
@@ -442,27 +598,22 @@ function saveLocalOperatingProfile() {
 
 async function saveOperatingProfile() {
   saveLocalOperatingProfile();
-
   if (!currentUser) return;
 
   window.clearTimeout(profileSaveTimer);
   profileSaveTimer = window.setTimeout(async () => {
-    const values = localProfileValues();
-
     const { error } = await supabaseClient
       .from("driver_profiles")
       .upsert(
         {
           user_id: currentUser.id,
-          ...values,
+          ...localProfileValues(),
           updated_at: new Date().toISOString()
         },
         { onConflict: "user_id" }
       );
 
-    if (error) {
-      console.error("Could not save operating profile:", error);
-    }
+    if (error) console.error("Could not save operating profile:", error);
   }, 350);
 }
 
@@ -470,7 +621,6 @@ function restoreLocalOperatingProfile() {
   try {
     const profile = JSON.parse(localStorage.getItem(STORAGE_KEYS.profile) || "null");
     if (!profile) return;
-
     elements.costPerMile.value = profile.costPerMile ?? "1.55";
     elements.maxDeadhead.value = profile.maxDeadhead ?? "150";
     elements.preferredEquipment.value = profile.preferredEquipment ?? "";
@@ -518,19 +668,16 @@ async function ensureProfile(user) {
   const { data, error } = await supabaseClient
     .from("profiles")
     .select(
-      "id, full_name, company_name, role, equipment, plan, subscription_status, trial_ends_at"
+      "id, full_name, company_name, role, equipment, plan, subscription_status, trial_ends_at, is_admin"
     )
     .eq("id", user.id)
     .maybeSingle();
 
-  if (error) {
-    console.error("Could not load account profile:", error);
-  }
-
+  if (error) console.error("Could not load account profile:", error);
   if (data) return data;
 
   const metadata = user.user_metadata || {};
-  const fallbackProfile = {
+  const fallback = {
     id: user.id,
     full_name: metadata.full_name || user.email?.split("@")[0] || "TruckLoad user",
     company_name: metadata.company_name || null,
@@ -541,19 +688,15 @@ async function ensureProfile(user) {
 
   const { data: inserted, error: insertError } = await supabaseClient
     .from("profiles")
-    .upsert(fallbackProfile, { onConflict: "id" })
+    .upsert(fallback, { onConflict: "id" })
     .select(
-      "id, full_name, company_name, role, equipment, plan, subscription_status, trial_ends_at"
+      "id, full_name, company_name, role, equipment, plan, subscription_status, trial_ends_at, is_admin"
     )
     .single();
 
   if (insertError) {
     console.error("Could not create account profile:", insertError);
-    return {
-      ...fallbackProfile,
-      subscription_status: "trialing",
-      trial_ends_at: null
-    };
+    return { ...fallback, subscription_status: "trialing", trial_ends_at: null, is_admin: false };
   }
 
   return inserted;
@@ -561,18 +704,23 @@ async function ensureProfile(user) {
 
 function trialText(profile) {
   if (!profile?.trial_ends_at) return profile?.subscription_status || "Account active";
-
   const end = new Date(profile.trial_ends_at);
-  const days = Math.max(
-    0,
-    Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  );
-
+  const days = Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86_400_000));
   if (profile.subscription_status === "trialing") {
     return `${days} trial day${days === 1 ? "" : "s"} remaining`;
   }
-
   return profile.subscription_status || "Account active";
+}
+
+function updateAdminVisibility() {
+  const isAdmin = Boolean(currentProfile?.is_admin);
+  elements.adminSection.classList.toggle("hidden", !isAdmin);
+  elements.adminNavLink.classList.toggle("hidden", !isAdmin);
+
+  if (isAdmin) {
+    loadAdminLoads();
+    loadProviderStatuses();
+  }
 }
 
 async function updateAccountUi() {
@@ -581,8 +729,10 @@ async function updateAccountUi() {
     elements.loginButton.classList.remove("hidden");
     elements.signupButton.classList.remove("hidden");
     elements.accountChip.classList.add("hidden");
+    elements.adminSection.classList.add("hidden");
+    elements.adminNavLink.classList.add("hidden");
     elements.sidebarAccountState.innerHTML = `
-      <p>Create an account to save your profile securely and access it from another device.</p>
+      <p>Create an account to save your profile securely and access online loads.</p>
       <button class="text-button" id="sidebarSignupDynamic" type="button">Create account →</button>
     `;
     document
@@ -592,7 +742,6 @@ async function updateAccountUi() {
   }
 
   currentProfile = await ensureProfile(currentUser);
-
   const fullName =
     currentProfile?.full_name ||
     currentUser.user_metadata?.full_name ||
@@ -607,11 +756,10 @@ async function updateAccountUi() {
 
   elements.sidebarAccountState.innerHTML = `
     <p><strong>${escapeHtml(fullName)}</strong></p>
-    <p>${escapeHtml(currentProfile?.role || "User")} · ${escapeHtml(
-      currentProfile?.plan || "Pro"
-    )} plan</p>
+    <p>${escapeHtml(currentProfile?.role || "User")} · ${escapeHtml(currentProfile?.plan || "Pro")} plan</p>
     <p>${escapeHtml(currentUser.email || "")}</p>
     <p>${escapeHtml(trialText(currentProfile))}</p>
+    ${currentProfile?.is_admin ? "<p><strong>Administrator</strong></p>" : ""}
     <button class="text-button" id="signOutButton" type="button">Sign out →</button>
   `;
 
@@ -619,31 +767,26 @@ async function updateAccountUi() {
     await supabaseClient.auth.signOut();
   });
 
-  if (currentProfile?.equipment) {
-    elements.preferredEquipment.value = currentProfile.equipment;
-  }
+  if (currentProfile?.equipment) elements.preferredEquipment.value = currentProfile.equipment;
 
   await loadRemoteOperatingProfile();
+  updateAdminVisibility();
 }
 
 async function handleSession(session) {
   currentUser = session?.user || null;
   await updateAccountUi();
+  await loadOnlineLoads();
+  subscribeToLoadChanges();
 }
 
 async function initializeAuth() {
   const { data, error } = await supabaseClient.auth.getSession();
-
-  if (error) {
-    console.error("Could not restore Supabase session:", error);
-  }
-
+  if (error) console.error("Could not restore Supabase session:", error);
   await handleSession(data?.session || null);
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
-    window.setTimeout(() => {
-      handleSession(session);
-    }, 0);
+    window.setTimeout(() => handleSession(session), 0);
   });
 }
 
@@ -679,9 +822,13 @@ function showLoadDetails(loadId) {
 
   const load = calculateLoad(rawLoad);
   const recommendation = recommendationData(load);
+  const sourceAction =
+    load.isOnline && load.sourceUrl
+      ? `<a class="button button-primary full-button" href="${escapeHtml(load.sourceUrl)}" target="_blank" rel="noopener">Open original source</a>`
+      : "";
 
   elements.loadModalContent.innerHTML = `
-    <p class="eyebrow dark-eyebrow">Demonstration load</p>
+    <p class="eyebrow dark-eyebrow">${load.isOnline ? "Online load" : "Demonstration load"}</p>
     <h2 id="loadModalTitle">${escapeHtml(load.origin)} to ${escapeHtml(load.destination)}</h2>
     <p class="modal-copy">
       Source: ${escapeHtml(load.source)} · Original reference: ${escapeHtml(load.sourceLoadId)}
@@ -700,40 +847,228 @@ function showLoadDetails(loadId) {
     </div>
 
     <div class="load-detail-grid">
-      <div class="detail-box">
-        <span>Gross rate</span>
-        <strong>${currency(load.gross)}</strong>
-      </div>
-      <div class="detail-box">
-        <span>Estimated cost</span>
-        <strong>${currency(load.estimatedCost)}</strong>
-      </div>
-      <div class="detail-box">
-        <span>Estimated profit</span>
-        <strong>${currency(load.profit)}</strong>
-      </div>
-      <div class="detail-box">
-        <span>Loaded miles</span>
-        <strong>${load.loadedMiles} mi</strong>
-      </div>
-      <div class="detail-box">
-        <span>Deadhead</span>
-        <strong>${load.deadhead} mi</strong>
-      </div>
-      <div class="detail-box">
-        <span>Recommendation</span>
-        <strong>${load.score}/100</strong>
-      </div>
+      <div class="detail-box"><span>Gross rate</span><strong>${currency(load.gross)}</strong></div>
+      <div class="detail-box"><span>Estimated cost</span><strong>${currency(load.estimatedCost)}</strong></div>
+      <div class="detail-box"><span>Estimated profit</span><strong>${currency(load.profit)}</strong></div>
+      <div class="detail-box"><span>Loaded miles</span><strong>${load.loadedMiles} mi</strong></div>
+      <div class="detail-box"><span>Deadhead</span><strong>${load.deadhead} mi</strong></div>
+      <div class="detail-box"><span>Recommendation</span><strong>${load.score}/100</strong></div>
     </div>
 
     <div class="detail-warning">
       ${escapeHtml(recommendation.reason)}
-      This freight is fictional. A production record will include verified broker authority,
-      real pickup requirements, timestamps, and an authorized booking method.
+      Verify the original source, broker authority, insurance requirements, appointments, and rate confirmation before accepting freight.
     </div>
+    ${sourceAction}
   `;
 
   openModal(elements.loadModal);
+}
+
+function adminLoadPayload() {
+  const origin = splitCityState(elements.adminOrigin.value);
+  const destination = splitCityState(elements.adminDestination.value);
+
+  if (!origin.city || !origin.state || !destination.city || !destination.state) {
+    throw new Error("Origin and destination must use the format City, ST.");
+  }
+
+  return {
+    source_name: elements.adminSourceName.value.trim(),
+    source_load_id: elements.adminSourceLoadId.value.trim(),
+    origin_city: origin.city,
+    origin_state: origin.state.toUpperCase(),
+    destination_city: destination.city,
+    destination_state: destination.state.toUpperCase(),
+    equipment: elements.adminEquipment.value,
+    gross_rate: Number(elements.adminGrossRate.value),
+    loaded_miles: Number(elements.adminLoadedMiles.value),
+    deadhead_miles: Number(elements.adminDeadheadMiles.value || 0),
+    tolls: Number(elements.adminTolls.value || 0),
+    weight_lbs: elements.adminWeight.value ? Number(elements.adminWeight.value) : null,
+    pickup_at: elements.adminPickupAt.value ? new Date(elements.adminPickupAt.value).toISOString() : null,
+    delivery_at: elements.adminDeliveryAt.value ? new Date(elements.adminDeliveryAt.value).toISOString() : null,
+    broker_name: elements.adminBrokerName.value.trim() || null,
+    broker_mc_number: elements.adminBrokerMc.value.trim() || null,
+    destination_quality: Number(elements.adminDestinationQuality.value || 70),
+    status: elements.adminStatus.value,
+    expires_at: elements.adminExpiresAt.value ? new Date(elements.adminExpiresAt.value).toISOString() : null,
+    created_by: currentUser.id,
+    updated_at: new Date().toISOString()
+  };
+}
+
+function resetAdminForm() {
+  elements.adminLoadForm.reset();
+  elements.adminLoadId.value = "";
+  elements.adminDeadheadMiles.value = "0";
+  elements.adminTolls.value = "0";
+  elements.adminDestinationQuality.value = "70";
+  elements.adminStatus.value = "available";
+  elements.adminFormTitle.textContent = "Create an online load";
+  elements.saveAdminLoadButton.textContent = "Publish load";
+  elements.cancelLoadEdit.classList.add("hidden");
+  elements.adminLoadMessage.textContent = "";
+  elements.adminLoadMessage.className = "form-message";
+}
+
+function adminLoadRow(row) {
+  const origin = `${row.origin_city}, ${row.origin_state}`;
+  const destination = `${row.destination_city}, ${row.destination_state}`;
+  return `
+    <article class="admin-load-row">
+      <div class="admin-load-route">
+        <span>${escapeHtml(origin)}</span>
+        <span>→</span>
+        <span>${escapeHtml(destination)}</span>
+      </div>
+      <div class="admin-load-meta">
+        <span>${escapeHtml(row.source_name)}</span>
+        <span>${escapeHtml(row.source_load_id)}</span>
+        <span>${escapeHtml(row.equipment)}</span>
+        <span>${currency(row.gross_rate)}</span>
+        <span class="tag status-${escapeHtml(row.status)}">${escapeHtml(row.status)}</span>
+      </div>
+      <div class="admin-load-actions">
+        <button class="admin-action-button" type="button" data-admin-action="edit" data-id="${row.id}">Edit</button>
+        <button class="admin-action-button" type="button" data-admin-action="available" data-id="${row.id}">Available</button>
+        <button class="admin-action-button" type="button" data-admin-action="reserved" data-id="${row.id}">Reserved</button>
+        <button class="admin-action-button" type="button" data-admin-action="expired" data-id="${row.id}">Expired</button>
+        <button class="admin-action-button danger" type="button" data-admin-action="delete" data-id="${row.id}">Delete</button>
+      </div>
+    </article>
+  `;
+}
+
+async function loadAdminLoads() {
+  if (!currentProfile?.is_admin) return;
+
+  const { data, error } = await supabaseClient
+    .from("loads")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    elements.adminLoadCount.textContent = error.message;
+    elements.adminLoadList.innerHTML = "";
+    return;
+  }
+
+  const rows = data || [];
+  elements.adminLoadCount.textContent = `${rows.length} load${rows.length === 1 ? "" : "s"} stored`;
+  elements.adminLoadList.innerHTML = rows.length
+    ? rows.map(adminLoadRow).join("")
+    : `<div class="empty-state"><strong>No online loads yet.</strong><div>Create one with the form.</div></div>`;
+}
+
+async function editAdminLoad(id) {
+  const { data, error } = await supabaseClient
+    .from("loads")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    elements.adminLoadMessage.textContent = error.message;
+    return;
+  }
+
+  elements.adminLoadId.value = data.id;
+  elements.adminSourceName.value = data.source_name || "";
+  elements.adminSourceLoadId.value = data.source_load_id || "";
+  elements.adminOrigin.value = `${data.origin_city}, ${data.origin_state}`;
+  elements.adminDestination.value = `${data.destination_city}, ${data.destination_state}`;
+  elements.adminEquipment.value = data.equipment || "Dry Van";
+  elements.adminGrossRate.value = data.gross_rate ?? "";
+  elements.adminWeight.value = data.weight_lbs ?? "";
+  elements.adminLoadedMiles.value = data.loaded_miles ?? "";
+  elements.adminDeadheadMiles.value = data.deadhead_miles ?? 0;
+  elements.adminTolls.value = data.tolls ?? 0;
+  elements.adminPickupAt.value = toLocalDateTimeInput(data.pickup_at);
+  elements.adminDeliveryAt.value = toLocalDateTimeInput(data.delivery_at);
+  elements.adminBrokerName.value = data.broker_name || "";
+  elements.adminBrokerMc.value = data.broker_mc_number || "";
+  elements.adminDestinationQuality.value = data.destination_quality ?? 70;
+  elements.adminStatus.value = data.status || "available";
+  elements.adminExpiresAt.value = toLocalDateTimeInput(data.expires_at);
+  elements.adminFormTitle.textContent = "Edit online load";
+  elements.saveAdminLoadButton.textContent = "Save changes";
+  elements.cancelLoadEdit.classList.remove("hidden");
+  elements.adminLoadForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function setAdminLoadStatus(id, status) {
+  const { error } = await supabaseClient
+    .from("loads")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) window.alert(error.message);
+  await loadAdminLoads();
+  await loadOnlineLoads();
+}
+
+async function deleteAdminLoad(id) {
+  if (!window.confirm("Delete this load permanently?")) return;
+
+  const { error } = await supabaseClient.from("loads").delete().eq("id", id);
+  if (error) window.alert(error.message);
+  await loadAdminLoads();
+  await loadOnlineLoads();
+}
+
+async function loadProviderStatuses() {
+  if (!currentProfile?.is_admin) return;
+
+  const { data, error } = await supabaseClient
+    .from("data_sources")
+    .select("provider_code, provider_name, status, last_sync_at, last_error")
+    .order("provider_name");
+
+  if (error || !data?.length) return;
+
+  elements.providerGrid.innerHTML = data
+    .map(source => {
+      const statusClass =
+        source.status === "connected" ? "connected" :
+        source.status === "error" ? "error" : "pending";
+      const detail = source.last_sync_at
+        ? `Last sync ${formatDate(source.last_sync_at)}`
+        : source.last_error || source.status;
+      return `
+        <div class="provider-card">
+          <strong>${escapeHtml(source.provider_name)}</strong>
+          <span class="provider-status ${statusClass}">${escapeHtml(detail)}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+async function syncProviders() {
+  if (!currentProfile?.is_admin) return;
+
+  elements.providerSyncMessage.className = "form-message";
+  elements.providerSyncMessage.textContent = "Requesting provider sync…";
+  elements.syncProvidersButton.disabled = true;
+
+  const { data, error } = await supabaseClient.functions.invoke(CONFIG.syncFunctionName, {
+    body: { requested_by: currentUser.id }
+  });
+
+  elements.syncProvidersButton.disabled = false;
+
+  if (error) {
+    elements.providerSyncMessage.textContent =
+      `Sync function is not deployed or provider credentials are missing: ${error.message}`;
+    return;
+  }
+
+  elements.providerSyncMessage.className = "form-message success";
+  elements.providerSyncMessage.textContent =
+    data?.message || "Synchronization request completed.";
+  await loadProviderStatuses();
+  await loadOnlineLoads();
 }
 
 elements.searchForm.addEventListener("submit", event => {
@@ -816,7 +1151,6 @@ elements.registerForm.addEventListener("submit", async event => {
   }
 
   elements.registerMessage.className = "form-message success";
-
   if (data.session) {
     elements.registerMessage.textContent =
       "Account created and signed in. Billing has not been activated.";
@@ -837,11 +1171,7 @@ elements.signinForm.addEventListener("submit", async event => {
   const email = document.getElementById("signinEmail").value.trim().toLowerCase();
   const password = document.getElementById("signinPassword").value;
 
-  const { error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password
-  });
-
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) {
     elements.signinMessage.textContent = error.message;
     return;
@@ -855,24 +1185,65 @@ elements.signinForm.addEventListener("submit", async event => {
 
 elements.accountChip.addEventListener("click", async () => {
   if (!currentUser) return;
-
   const fullName =
     currentProfile?.full_name ||
     currentUser.user_metadata?.full_name ||
     currentUser.email ||
     "Account";
 
-  const wantsSignOut = window.confirm(
-    `${fullName}\n${currentProfile?.plan || "Pro"} plan\n\nSign out?`
-  );
-
-  if (wantsSignOut) {
+  if (window.confirm(`${fullName}\n${currentProfile?.plan || "Pro"} plan\n\nSign out?`)) {
     await supabaseClient.auth.signOut();
   }
+});
+
+elements.adminLoadForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!currentProfile?.is_admin) return;
+
+  elements.adminLoadMessage.className = "form-message";
+  elements.adminLoadMessage.textContent = "";
+
+  try {
+    const payload = adminLoadPayload();
+    const id = elements.adminLoadId.value;
+
+    let result;
+    if (id) {
+      result = await supabaseClient.from("loads").update(payload).eq("id", id);
+    } else {
+      result = await supabaseClient.from("loads").insert(payload);
+    }
+
+    if (result.error) throw result.error;
+
+    elements.adminLoadMessage.className = "form-message success";
+    elements.adminLoadMessage.textContent = id ? "Load updated." : "Load published.";
+    resetAdminForm();
+    await loadAdminLoads();
+    await loadOnlineLoads();
+  } catch (error) {
+    elements.adminLoadMessage.textContent = error.message || "Could not save the load.";
+  }
+});
+
+elements.cancelLoadEdit.addEventListener("click", resetAdminForm);
+elements.refreshAdminLoads.addEventListener("click", loadAdminLoads);
+elements.syncProvidersButton.addEventListener("click", syncProviders);
+
+elements.adminLoadList.addEventListener("click", event => {
+  const button = event.target.closest("[data-admin-action]");
+  if (!button) return;
+  const { adminAction, id } = button.dataset;
+
+  if (adminAction === "edit") editAdminLoad(id);
+  if (["available", "reserved", "expired"].includes(adminAction)) {
+    setAdminLoadStatus(id, adminAction);
+  }
+  if (adminAction === "delete") deleteAdminLoad(id);
 });
 
 setupAutocomplete(elements.origin, elements.originSuggestions, "origin");
 setupAutocomplete(elements.destination, elements.destinationSuggestions, "destination");
 restoreLocalOperatingProfile();
-loadInitialData();
+loadBaseData();
 initializeAuth();
