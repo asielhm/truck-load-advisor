@@ -103,6 +103,9 @@ let demoLoads = [];
 let allLoads = [];
 let activeLoads = [];
 let cities = [];
+let locations = [];
+let locationLookup = new Map();
+let activeLoadMap = null;
 let currentUser = null;
 let currentProfile = null;
 let currentDataMode = "demo";
@@ -114,7 +117,7 @@ let autocompleteState = {
 };
 
 function currency(value) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(window.TLA_I18N?.getLocale() || "en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0
@@ -204,11 +207,42 @@ async function loadBaseData() {
     ]);
 
     demoLoads = Array.isArray(loadedLoads) ? loadedLoads : [];
-    cities = Array.isArray(loadedCities) ? loadedCities : [];
+    locations = (Array.isArray(loadedCities) ? loadedCities : [])
+      .map(item => {
+        if (typeof item === "string") {
+          const parsed = splitLocation(item);
+          return {
+            label: item,
+            city: parsed.city,
+            region: parsed.state,
+            country: parsed.country,
+            lat: null,
+            lon: null
+          };
+        }
+
+        return {
+          label: item.label,
+          city: item.city,
+          region: item.region,
+          country: item.country,
+          lat: Number(item.lat),
+          lon: Number(item.lon)
+        };
+      })
+      .filter(item => item.label);
+
+    cities = locations.map(item => item.label);
+    locationLookup = new Map(
+      locations.map(item => [normalizeSearch(item.label), item])
+    );
     rebuildCitySearchIndex();
+
     elements.adminCityList.innerHTML = cities
       .map(city => `<option value="${escapeHtml(city)}"></option>`)
       .join("");
+
+    demoLoads = demoLoads.map(enrichLoadCoordinates);
 
     useDemoLoads();
   } catch (error) {
@@ -224,30 +258,47 @@ async function loadBaseData() {
 }
 
 function useDemoLoads() {
-  allLoads = [...demoLoads];
+  allLoads = demoLoads.map(enrichLoadCoordinates);
   activeLoads = [...allLoads];
   setDataMode("demo");
   render();
 }
 
 function mapDatabaseLoad(row) {
+  const origin = formatLocation(
+    row.origin_city,
+    row.origin_state,
+    row.origin_country || "US"
+  );
+  const destination = formatLocation(
+    row.destination_city,
+    row.destination_state,
+    row.destination_country || "US"
+  );
+  const originLocation = resolveLocation(origin);
+  const destinationLocation = resolveLocation(destination);
+
   return {
     id: row.id,
     source: row.source_name,
     sourceLoadId: row.source_load_id,
     sourceUrl: row.source_url || "",
     status: row.status || "available",
-    origin: formatLocation(row.origin_city, row.origin_state, row.origin_country || "US"),
-    destination: formatLocation(
-      row.destination_city,
-      row.destination_state,
-      row.destination_country || "US"
-    ),
+    origin,
+    destination,
+    originLat: finiteCoordinate(row.origin_lat) ?? finiteCoordinate(originLocation?.lat),
+    originLon: finiteCoordinate(row.origin_lon) ?? finiteCoordinate(originLocation?.lon),
+    destinationLat:
+      finiteCoordinate(row.destination_lat) ?? finiteCoordinate(destinationLocation?.lat),
+    destinationLon:
+      finiteCoordinate(row.destination_lon) ?? finiteCoordinate(destinationLocation?.lon),
     equipment: row.equipment,
     gross: Number(row.gross_rate || 0),
     loadedMiles: Number(row.loaded_miles || 0),
     deadhead: Number(row.deadhead_miles || 0),
-    weight: row.weight_lbs ? `${Number(row.weight_lbs).toLocaleString()} lb` : "Weight not listed",
+    weight: row.weight_lbs
+      ? `${Number(row.weight_lbs).toLocaleString(window.TLA_I18N?.getLocale() || "en-US")} lb`
+      : "Weight not listed",
     pickup: formatDate(row.pickup_at),
     delivery: formatDate(row.delivery_at),
     pickupAt: row.pickup_at,
@@ -321,11 +372,49 @@ function normalizeSearch(value) {
 let citySearchIndex = [];
 
 function rebuildCitySearchIndex() {
-  citySearchIndex = cities.map(label => {
-    const normalized = normalizeSearch(label);
-    const cityName = normalizeSearch(label.split(",")[0]);
-    return { label, normalized, cityName };
+  citySearchIndex = locations.map(location => {
+    const normalized = normalizeSearch(location.label);
+    const cityName = normalizeSearch(location.city || location.label.split(",")[0]);
+    return {
+      ...location,
+      normalized,
+      cityName
+    };
   });
+}
+
+function resolveLocation(label) {
+  return locationLookup.get(normalizeSearch(label)) || null;
+}
+
+function finiteCoordinate(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function enrichLoadCoordinates(load) {
+  const originLocation = resolveLocation(load.origin);
+  const destinationLocation = resolveLocation(load.destination);
+
+  return {
+    ...load,
+    originLat:
+      finiteCoordinate(load.originLat) ??
+      finiteCoordinate(load.origin_lat) ??
+      finiteCoordinate(originLocation?.lat),
+    originLon:
+      finiteCoordinate(load.originLon) ??
+      finiteCoordinate(load.origin_lon) ??
+      finiteCoordinate(originLocation?.lon),
+    destinationLat:
+      finiteCoordinate(load.destinationLat) ??
+      finiteCoordinate(load.destination_lat) ??
+      finiteCoordinate(destinationLocation?.lat),
+    destinationLon:
+      finiteCoordinate(load.destinationLon) ??
+      finiteCoordinate(load.destination_lon) ??
+      finiteCoordinate(destinationLocation?.lon)
+  };
 }
 
 function cityMatches(query) {
@@ -861,16 +950,165 @@ function openAuth(mode = "register", plan = null) {
   openModal(elements.authModal);
 }
 
+function coordinatesAvailable(load) {
+  return [
+    load.originLat,
+    load.originLon,
+    load.destinationLat,
+    load.destinationLon
+  ].every(value => Number.isFinite(Number(value)));
+}
+
+function googleMapsUrl(load) {
+  const origin = coordinatesAvailable(load)
+    ? `${load.originLat},${load.originLon}`
+    : load.origin;
+  const destination = coordinatesAvailable(load)
+    ? `${load.destinationLat},${load.destinationLon}`
+    : load.destination;
+
+  return (
+    "https://www.google.com/maps/dir/?api=1" +
+    `&origin=${encodeURIComponent(origin)}` +
+    `&destination=${encodeURIComponent(destination)}` +
+    "&travelmode=driving"
+  );
+}
+
+function appleMapsUrl(load) {
+  const source = coordinatesAvailable(load)
+    ? `${load.originLat},${load.originLon}`
+    : load.origin;
+  const destination = coordinatesAvailable(load)
+    ? `${load.destinationLat},${load.destinationLon}`
+    : load.destination;
+
+  return (
+    "https://maps.apple.com/directions" +
+    `?source=${encodeURIComponent(source)}` +
+    `&destination=${encodeURIComponent(destination)}` +
+    "&mode=driving"
+  );
+}
+
+function destroyActiveMap() {
+  if (!activeLoadMap) return;
+  activeLoadMap.remove();
+  activeLoadMap = null;
+}
+
+function renderLoadMap(load) {
+  destroyActiveMap();
+
+  const container = document.getElementById("loadRouteMap");
+  if (!container || !coordinatesAvailable(load) || !window.L) return;
+
+  const origin = [Number(load.originLat), Number(load.originLon)];
+  const destination = [Number(load.destinationLat), Number(load.destinationLon)];
+
+  activeLoadMap = L.map(container, {
+    scrollWheelZoom: false,
+    zoomControl: true
+  });
+
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(activeLoadMap);
+
+  const originMarker = L.circleMarker(origin, {
+    radius: 9,
+    weight: 3,
+    color: "#ffffff",
+    fillColor: "#1478f2",
+    fillOpacity: 1
+  }).addTo(activeLoadMap);
+
+  const destinationMarker = L.circleMarker(destination, {
+    radius: 9,
+    weight: 3,
+    color: "#ffffff",
+    fillColor: "#139764",
+    fillOpacity: 1
+  }).addTo(activeLoadMap);
+
+  originMarker.bindPopup(
+    `<strong>${escapeHtml(window.TLA_I18N?.translateString("Origin") || "Origin")}</strong><br>` +
+    escapeHtml(load.origin)
+  );
+
+  destinationMarker.bindPopup(
+    `<strong>${escapeHtml(window.TLA_I18N?.translateString("Destination") || "Destination")}</strong><br>` +
+    escapeHtml(load.destination)
+  );
+
+  const referenceLine = L.polyline([origin, destination], {
+    weight: 4,
+    opacity: 0.72,
+    dashArray: "9 8",
+    color: "#536a7d"
+  }).addTo(activeLoadMap);
+
+  activeLoadMap.fitBounds(referenceLine.getBounds(), {
+    padding: [36, 36],
+    maxZoom: 9
+  });
+
+  window.setTimeout(() => activeLoadMap?.invalidateSize(), 120);
+}
+
 function showLoadDetails(loadId) {
   const rawLoad = allLoads.find(load => String(load.id) === String(loadId));
   if (!rawLoad) return;
 
-  const load = calculateLoad(rawLoad);
+  const load = calculateLoad(enrichLoadCoordinates(rawLoad));
   const recommendation = recommendationData(load);
+  const hasCoordinates = coordinatesAvailable(load);
+
   const sourceAction =
     load.isOnline && load.sourceUrl
       ? `<a class="button button-primary full-button" href="${escapeHtml(load.sourceUrl)}" target="_blank" rel="noopener">Open original source</a>`
       : "";
+
+  const mapMarkup = hasCoordinates
+    ? `
+      <section class="load-map-section">
+        <div class="load-map-heading">
+          <div>
+            <h3>Route map</h3>
+            <p>Geographic reference only — not truck-specific routing.</p>
+          </div>
+        </div>
+        <div id="loadRouteMap" class="load-route-map" aria-label="Route map"></div>
+        <div class="load-map-legend">
+          <span class="map-legend-item"><span class="map-legend-dot map-origin-dot"></span>Origin marker</span>
+          <span class="map-legend-item"><span class="map-legend-dot map-destination-dot"></span>Destination marker</span>
+          <span class="map-legend-item"><span class="map-legend-dot map-route-dot"></span>Straight reference line</span>
+        </div>
+        <div class="map-actions">
+          <a
+            class="map-action-button"
+            href="${escapeHtml(googleMapsUrl(load))}"
+            target="_blank"
+            rel="noopener"
+          >Open in Google Maps</a>
+          <a
+            class="map-action-button"
+            href="${escapeHtml(appleMapsUrl(load))}"
+            target="_blank"
+            rel="noopener"
+          >Open in Apple Maps</a>
+        </div>
+      </section>
+    `
+    : `
+      <section class="load-map-section">
+        <div class="map-unavailable">
+          <strong>Map unavailable</strong><br>
+          Coordinates are not available for this load. Edit and save the load again using a location from the city list.
+        </div>
+      </section>
+    `;
 
   elements.loadModalContent.innerHTML = `
     <p class="eyebrow dark-eyebrow">${load.isOnline ? "Online load" : "Demonstration load"}</p>
@@ -900,6 +1138,8 @@ function showLoadDetails(loadId) {
       <div class="detail-box"><span>Recommendation</span><strong>${load.score}/100</strong></div>
     </div>
 
+    ${mapMarkup}
+
     <div class="detail-warning">
       ${escapeHtml(recommendation.reason)}
       Verify the original source, broker authority, insurance requirements, appointments, and rate confirmation before accepting freight.
@@ -908,11 +1148,17 @@ function showLoadDetails(loadId) {
   `;
 
   openModal(elements.loadModal);
+
+  if (hasCoordinates) {
+    window.setTimeout(() => renderLoadMap(load), 80);
+  }
 }
 
 function adminLoadPayload() {
   const origin = splitLocation(elements.adminOrigin.value);
   const destination = splitLocation(elements.adminDestination.value);
+  const originLocation = resolveLocation(elements.adminOrigin.value);
+  const destinationLocation = resolveLocation(elements.adminDestination.value);
 
   if (
     !origin.city || !origin.state || !origin.country ||
@@ -921,15 +1167,25 @@ function adminLoadPayload() {
     throw new Error("Origin and destination must use the format City, ST, Country.");
   }
 
+  if (!originLocation || !destinationLocation) {
+    throw new Error(
+      "Select origin and destination from the location list so their map coordinates can be saved."
+    );
+  }
+
   return {
     source_name: elements.adminSourceName.value.trim(),
     source_load_id: elements.adminSourceLoadId.value.trim(),
     origin_city: origin.city,
     origin_state: origin.state.toUpperCase(),
     origin_country: origin.country.toUpperCase(),
+    origin_lat: Number(originLocation.lat),
+    origin_lon: Number(originLocation.lon),
     destination_city: destination.city,
     destination_state: destination.state.toUpperCase(),
     destination_country: destination.country.toUpperCase(),
+    destination_lat: Number(destinationLocation.lat),
+    destination_lon: Number(destinationLocation.lon),
     equipment: elements.adminEquipment.value,
     gross_rate: Number(elements.adminGrossRate.value),
     loaded_miles: Number(elements.adminLoadedMiles.value),
@@ -1161,7 +1417,10 @@ elements.loginButton.addEventListener("click", () => openAuth("signin"));
 elements.signupButton.addEventListener("click", () => openAuth("register"));
 elements.sidebarSignupButton?.addEventListener("click", () => openAuth("register"));
 elements.closeAuthModal.addEventListener("click", () => closeModal(elements.authModal));
-elements.closeLoadModal.addEventListener("click", () => closeModal(elements.loadModal));
+elements.closeLoadModal.addEventListener("click", () => {
+  destroyActiveMap();
+  closeModal(elements.loadModal);
+});
 elements.registerTab.addEventListener("click", () => switchAuthPanel("register"));
 elements.signinTab.addEventListener("click", () => switchAuthPanel("signin"));
 
@@ -1171,14 +1430,20 @@ document.querySelectorAll(".plan-button").forEach(button => {
 
 [elements.authModal, elements.loadModal].forEach(modal => {
   modal.addEventListener("click", event => {
-    if (event.target === modal) closeModal(modal);
+    if (event.target === modal) {
+      if (modal === elements.loadModal) destroyActiveMap();
+      closeModal(modal);
+    }
   });
 });
 
 document.addEventListener("keydown", event => {
   if (event.key !== "Escape") return;
   if (!elements.authModal.classList.contains("hidden")) closeModal(elements.authModal);
-  if (!elements.loadModal.classList.contains("hidden")) closeModal(elements.loadModal);
+  if (!elements.loadModal.classList.contains("hidden")) {
+    destroyActiveMap();
+    closeModal(elements.loadModal);
+  }
 });
 
 elements.registerForm.addEventListener("submit", async event => {

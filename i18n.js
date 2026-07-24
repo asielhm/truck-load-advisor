@@ -217,6 +217,25 @@
     "Broker not listed": "Broker no informado",
     "Demo": "Demostración",
     "Review": "Revisar",
+
+    "Start typing a city, state, province, or country and select a matching location.":
+      "Comenzá a escribir una ciudad, estado, provincia o país y seleccioná una coincidencia.",
+    "Route map": "Mapa del recorrido",
+    "Geographic reference only — not truck-specific routing.":
+      "Referencia geográfica únicamente; no es un ruteo específico para camiones.",
+    "Origin marker": "Marcador de origen",
+    "Destination marker": "Marcador de destino",
+    "Straight reference line": "Línea recta de referencia",
+    "Open in Google Maps": "Abrir en Google Maps",
+    "Open in Apple Maps": "Abrir en Apple Maps",
+    "Map unavailable": "Mapa no disponible",
+    "Coordinates are not available for this load. Edit and save the load again using a location from the city list.":
+      "No hay coordenadas disponibles para esta carga. Editala y volvé a guardarla seleccionando una ubicación de la lista.",
+    "Select origin and destination from the location list so their map coordinates can be saved.":
+      "Seleccioná el origen y el destino desde la lista para poder guardar sus coordenadas en el mapa.",
+    "Origin and destination must use the format City, ST, Country.":
+      "El origen y el destino deben usar el formato Ciudad, Estado/Provincia, País.",
+    "to": "a",
     "Low score": "Puntuación baja"
   };
 

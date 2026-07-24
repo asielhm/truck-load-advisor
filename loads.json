@@ -14,7 +14,11 @@
     "pickup": "Today \u00b7 3:00 PM",
     "delivery": "Tomorrow \u00b7 2:00 PM",
     "destinationQuality": 92,
-    "tolls": 80
+    "tolls": 80,
+    "originLat": 32.78306,
+    "originLon": -96.80667,
+    "destinationLat": 33.749,
+    "destinationLon": -84.38798
   },
   {
     "id": "demo-1002",
@@ -31,7 +35,11 @@
     "pickup": "Tomorrow \u00b7 8:00 AM",
     "delivery": "Tomorrow \u00b7 7:00 PM",
     "destinationQuality": 81,
-    "tolls": 35
+    "tolls": 35,
+    "originLat": 29.76328,
+    "originLon": -95.36327,
+    "destinationLat": 35.14953,
+    "destinationLon": -90.04898
   },
   {
     "id": "demo-1003",
@@ -48,7 +56,11 @@
     "pickup": "Today \u00b7 7:30 PM",
     "delivery": "Two days \u00b7 8:00 AM",
     "destinationQuality": 67,
-    "tolls": 55
+    "tolls": 55,
+    "originLat": 32.72541,
+    "originLon": -97.32085,
+    "destinationLat": 33.44838,
+    "destinationLon": -112.07404
   },
   {
     "id": "demo-1004",
@@ -65,7 +77,11 @@
     "pickup": "Tomorrow \u00b7 1:00 PM",
     "delivery": "Next day \u00b7 9:00 AM",
     "destinationQuality": 76,
-    "tolls": 40
+    "tolls": 40,
+    "originLat": 35.46756,
+    "originLon": -97.51643,
+    "destinationLat": 39.73915,
+    "destinationLon": -104.9847
   },
   {
     "id": "demo-1005",
@@ -82,7 +98,11 @@
     "pickup": "Jul 27 \u00b7 9:00 AM",
     "delivery": "Jul 29 \u00b7 10:00 AM",
     "destinationQuality": 42,
-    "tolls": 110
+    "tolls": 110,
+    "originLat": 30.26715,
+    "originLon": -97.74306,
+    "destinationLat": 28.53834,
+    "destinationLon": -81.37924
   },
   {
     "id": "demo-1006",
@@ -99,7 +119,11 @@
     "pickup": "Jul 27 \u00b7 5:00 PM",
     "delivery": "Jul 29 \u00b7 6:00 AM",
     "destinationQuality": 86,
-    "tolls": 65
+    "tolls": 65,
+    "originLat": 29.42412,
+    "originLon": -98.49363,
+    "destinationLat": 36.16589,
+    "destinationLon": -86.78444
   },
   {
     "id": "demo-1007",
@@ -116,7 +140,11 @@
     "pickup": "Today \u00b7 5:00 PM",
     "delivery": "Tomorrow \u00b7 2:00 AM",
     "destinationQuality": 88,
-    "tolls": 52
+    "tolls": 52,
+    "originLat": 41.85003,
+    "originLon": -87.65005,
+    "destinationLat": 39.96118,
+    "destinationLon": -82.99879
   },
   {
     "id": "demo-1008",
@@ -133,7 +161,11 @@
     "pickup": "Tomorrow \u00b7 6:00 AM",
     "delivery": "Tomorrow \u00b7 8:00 PM",
     "destinationQuality": 84,
-    "tolls": 75
+    "tolls": 75,
+    "originLat": 40.60843,
+    "originLon": -75.49018,
+    "destinationLat": 35.22709,
+    "destinationLon": -80.84313
   },
   {
     "id": "demo-1009",
@@ -150,7 +182,11 @@
     "pickup": "Today \u00b7 9:00 PM",
     "delivery": "Tomorrow \u00b7 5:00 AM",
     "destinationQuality": 73,
-    "tolls": 15
+    "tolls": 15,
+    "originLat": 34.05223,
+    "originLon": -118.24368,
+    "destinationLat": 36.17497,
+    "destinationLon": -115.13722
   },
   {
     "id": "demo-1010",
@@ -167,6 +203,10 @@
     "pickup": "Tomorrow \u00b7 11:00 AM",
     "delivery": "Next day \u00b7 3:00 AM",
     "destinationQuality": 79,
-    "tolls": 28
+    "tolls": 28,
+    "originLat": 39.09973,
+    "originLon": -94.57857,
+    "destinationLat": 44.97997,
+    "destinationLon": -93.26384
   }
 ]

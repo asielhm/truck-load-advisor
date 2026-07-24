@@ -1688,3 +1688,130 @@ p {
     padding-right: 25px;
   }
 }
+
+
+.load-map-section {
+  margin-top: 20px;
+}
+
+.load-map-heading {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.load-map-heading h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.load-map-heading p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.load-route-map {
+  width: 100%;
+  height: 360px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #eaf0f4;
+}
+
+.load-map-legend {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.map-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.map-origin-dot {
+  background: #1478f2;
+}
+
+.map-destination-dot {
+  background: #139764;
+}
+
+.map-route-dot {
+  background: #536a7d;
+}
+
+.map-actions {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.map-action-button {
+  min-height: 44px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  color: #23445f;
+  background: white;
+  font-size: 0.82rem;
+  font-weight: 820;
+}
+
+.map-action-button:hover {
+  border-color: #95b5ce;
+  background: #f2f7fa;
+}
+
+.map-unavailable {
+  padding: 28px 18px;
+  border: 1px dashed #b9c9d6;
+  border-radius: 15px;
+  color: var(--muted);
+  background: #f7fafc;
+  text-align: center;
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
+.leaflet-container {
+  font-family: inherit;
+}
+
+.leaflet-popup-content {
+  line-height: 1.45;
+}
+
+@media (max-width: 600px) {
+  .load-route-map {
+    height: 285px;
+  }
+
+  .load-map-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .map-actions {
+    grid-template-columns: 1fr;
+  }
+}
