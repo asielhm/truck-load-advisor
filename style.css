@@ -1815,3 +1815,14 @@ p {
     grid-template-columns: 1fr;
   }
 }
+
+
+.manual-summary-tag {
+  color: #5d4610;
+  border-color: #e7cf8d;
+  background: #fff3ce;
+}
+
+.metric strong:has(+ .rate-unavailable) {
+  color: var(--muted);
+}

@@ -236,6 +236,15 @@
     "Origin and destination must use the format City, ST, Country.":
       "El origen y el destino deben usar el formato Ciudad, Estado/Provincia, País.",
     "to": "a",
+
+    "Box Truck": "Camión caja",
+    "Rate unavailable": "Tarifa no disponible",
+    "Rate needed": "Falta la tarifa",
+    "Manual public summary": "Resumen público manual",
+    "The public listing does not include the gross rate, so profit and recommendation score cannot be calculated yet.":
+      "La publicación pública no incluye la tarifa bruta, por lo que todavía no se pueden calcular la ganancia ni la puntuación de recomendación.",
+    "This record was entered manually from a public listing summary. Rate, broker and contact details were not published.":
+      "Este registro fue ingresado manualmente desde un resumen público. No se publicaron la tarifa, el broker ni los datos de contacto.",
     "Low score": "Puntuación baja"
   };
 

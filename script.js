@@ -293,7 +293,10 @@ function mapDatabaseLoad(row) {
     destinationLon:
       finiteCoordinate(row.destination_lon) ?? finiteCoordinate(destinationLocation?.lon),
     equipment: row.equipment,
-    gross: Number(row.gross_rate || 0),
+    loadType: row.raw_payload?.load_type || null,
+    rateVisibility: row.raw_payload?.rate_visibility || null,
+    isManualPublicSummary: Boolean(row.raw_payload?.manual_public_summary),
+    gross: row.gross_rate == null ? null : Number(row.gross_rate),
     loadedMiles: Number(row.loaded_miles || 0),
     deadhead: Number(row.deadhead_miles || 0),
     weight: row.weight_lbs
@@ -546,8 +549,28 @@ function calculateLoad(load) {
   const costPerMile = Math.max(Number(elements.costPerMile.value) || 0, 0);
   const totalMiles = Number(load.loadedMiles || 0) + Number(load.deadhead || 0);
   const estimatedCost = totalMiles * costPerMile + Number(load.tolls || 0);
-  const profit = Number(load.gross || 0) - estimatedCost;
-  const grossPerTotalMile = totalMiles > 0 ? Number(load.gross || 0) / totalMiles : 0;
+  const hasRate =
+    load.gross !== null &&
+    load.gross !== undefined &&
+    load.gross !== "" &&
+    Number.isFinite(Number(load.gross));
+
+  if (!hasRate) {
+    return {
+      ...load,
+      hasRate: false,
+      totalMiles,
+      estimatedCost,
+      profit: null,
+      grossPerTotalMile: null,
+      netPerTotalMile: null,
+      score: null
+    };
+  }
+
+  const gross = Number(load.gross);
+  const profit = gross - estimatedCost;
+  const grossPerTotalMile = totalMiles > 0 ? gross / totalMiles : 0;
   const netPerTotalMile = totalMiles > 0 ? profit / totalMiles : 0;
   const deadheadPenalty = Math.min((Number(load.deadhead || 0) / 180) * 20, 20);
   const profitScore = Math.min(Math.max((netPerTotalMile / 1.6) * 45, 0), 45);
@@ -566,6 +589,8 @@ function calculateLoad(load) {
 
   return {
     ...load,
+    hasRate: true,
+    gross,
     totalMiles,
     estimatedCost,
     profit,
@@ -576,6 +601,14 @@ function calculateLoad(load) {
 }
 
 function recommendationData(load) {
+  if (!load.hasRate) {
+    return {
+      label: "Rate needed",
+      className: "review",
+      reason: "The public listing does not include the gross rate, so profit and recommendation score cannot be calculated yet."
+    };
+  }
+
   if (load.score >= 80) {
     return {
       label: "Recommended",
@@ -602,6 +635,15 @@ function recommendationData(load) {
 function loadCard(load) {
   const recommendation = recommendationData(load);
   const sourceLabel = load.isOnline ? load.source : `${load.source} · Demo`;
+  const rateText = load.hasRate ? currency(load.gross) : "Rate unavailable";
+  const profitText = load.hasRate ? currency(load.profit) : "—";
+  const scoreText = load.hasRate ? load.score : "—";
+  const rateDetails = load.hasRate
+    ? `
+      Gross per total mile: <strong>$${load.grossPerTotalMile.toFixed(2)}</strong>.
+      Net per total mile: <strong>$${load.netPerTotalMile.toFixed(2)}</strong>.
+    `
+    : "";
 
   return `
     <article class="load-card">
@@ -620,30 +662,32 @@ function loadCard(load) {
           </div>
 
           <div class="load-meta">
+            ${load.loadType ? `<span class="tag">${escapeHtml(load.loadType)}</span>` : ""}
             <span class="tag">${escapeHtml(load.equipment)}</span>
             <span class="tag">${escapeHtml(load.weight)}</span>
             <span class="tag">${escapeHtml(sourceLabel)}</span>
+            ${load.isManualPublicSummary ? '<span class="tag manual-summary-tag">Manual public summary</span>' : ""}
             <span class="tag">${escapeHtml(load.status)}</span>
           </div>
         </div>
 
         <div class="metric">
           <span>Gross rate</span>
-          <strong>${currency(load.gross)}</strong>
+          <strong>${rateText}</strong>
         </div>
 
         <div class="metric">
           <span>Total miles</span>
-          <strong>${load.totalMiles.toLocaleString()} mi</strong>
+          <strong>${load.totalMiles.toLocaleString(window.TLA_I18N?.getLocale() || "en-US")} mi</strong>
         </div>
 
         <div class="metric">
           <span>Est. profit</span>
-          <strong class="positive">${currency(load.profit)}</strong>
+          <strong class="${load.hasRate ? "positive" : ""}">${profitText}</strong>
         </div>
 
         <div class="recommendation ${recommendation.className}">
-          <div class="recommendation-score">${load.score}</div>
+          <div class="recommendation-score">${scoreText}</div>
           <strong>${recommendation.label}</strong>
         </div>
       </div>
@@ -651,8 +695,7 @@ function loadCard(load) {
       <div class="load-card-footer">
         <div class="reason">
           ${recommendation.reason}
-          Gross per total mile: <strong>$${load.grossPerTotalMile.toFixed(2)}</strong>.
-          Net per total mile: <strong>$${load.netPerTotalMile.toFixed(2)}</strong>.
+          ${rateDetails}
         </div>
         <button class="view-button" type="button" data-load-id="${load.id}">
           View details
@@ -664,10 +707,16 @@ function loadCard(load) {
 
 function sortLoads(loadsToSort) {
   const sorted = [...loadsToSort];
-  if (elements.sortBy.value === "profit") sorted.sort((a, b) => b.profit - a.profit);
-  if (elements.sortBy.value === "rate") sorted.sort((a, b) => b.gross - a.gross);
+  if (elements.sortBy.value === "profit") {
+    sorted.sort((a, b) => (b.profit ?? -Infinity) - (a.profit ?? -Infinity));
+  }
+  if (elements.sortBy.value === "rate") {
+    sorted.sort((a, b) => (b.gross ?? -Infinity) - (a.gross ?? -Infinity));
+  }
   if (elements.sortBy.value === "deadhead") sorted.sort((a, b) => a.deadhead - b.deadhead);
-  if (elements.sortBy.value === "score") sorted.sort((a, b) => b.score - a.score);
+  if (elements.sortBy.value === "score") {
+    sorted.sort((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity));
+  }
   return sorted;
 }
 
@@ -1130,18 +1179,23 @@ function showLoadDetails(loadId) {
     </div>
 
     <div class="load-detail-grid">
-      <div class="detail-box"><span>Gross rate</span><strong>${currency(load.gross)}</strong></div>
+      <div class="detail-box"><span>Gross rate</span><strong>${load.hasRate ? currency(load.gross) : "Rate unavailable"}</strong></div>
       <div class="detail-box"><span>Estimated cost</span><strong>${currency(load.estimatedCost)}</strong></div>
-      <div class="detail-box"><span>Estimated profit</span><strong>${currency(load.profit)}</strong></div>
+      <div class="detail-box"><span>Estimated profit</span><strong>${load.hasRate ? currency(load.profit) : "—"}</strong></div>
       <div class="detail-box"><span>Loaded miles</span><strong>${load.loadedMiles} mi</strong></div>
       <div class="detail-box"><span>Deadhead</span><strong>${load.deadhead} mi</strong></div>
-      <div class="detail-box"><span>Recommendation</span><strong>${load.score}/100</strong></div>
+      <div class="detail-box"><span>Recommendation</span><strong>${load.hasRate ? `${load.score}/100` : "Rate needed"}</strong></div>
     </div>
 
     ${mapMarkup}
 
     <div class="detail-warning">
       ${escapeHtml(recommendation.reason)}
+      ${
+        load.isManualPublicSummary
+          ? "This record was entered manually from a public listing summary. Rate, broker and contact details were not published. "
+          : ""
+      }
       Verify the original source, broker authority, insurance requirements, appointments, and rate confirmation before accepting freight.
     </div>
     ${sourceAction}
