@@ -38,9 +38,25 @@ const elements = {
   destinationSuggestions: document.getElementById("destinationSuggestions"),
   equipment: document.getElementById("equipment"),
   minRate: document.getElementById("minRate"),
+  costModel: document.getElementById("costModel"),
   costPerMile: document.getElementById("costPerMile"),
+  costPerMileLabel: document.getElementById("costPerMileLabel"),
+  costPerMileHelp: document.getElementById("costPerMileHelp"),
   maxDeadhead: document.getElementById("maxDeadhead"),
   preferredEquipment: document.getElementById("preferredEquipment"),
+  loadedMpg: document.getElementById("loadedMpg"),
+  emptyMpg: document.getElementById("emptyMpg"),
+  fuelPriceOverride: document.getElementById("fuelPriceOverride"),
+  tollProgram: document.getElementById("tollProgram"),
+  hosDriveRemaining: document.getElementById("hosDriveRemaining"),
+  hosShiftRemaining: document.getElementById("hosShiftRemaining"),
+  hosCycleRemaining: document.getElementById("hosCycleRemaining"),
+  hosRule: document.getElementById("hosRule"),
+  calculationModeInfo: document.getElementById("calculationModeInfo"),
+  fuelDataStatus: document.getElementById("fuelDataStatus"),
+  tollDataStatus: document.getElementById("tollDataStatus"),
+  hosDataStatus: document.getElementById("hosDataStatus"),
+  marketDataStatus: document.getElementById("marketDataStatus"),
   sortBy: document.getElementById("sortBy"),
   loginButton: document.getElementById("loginButton"),
   signupButton: document.getElementById("signupButton"),
@@ -125,6 +141,9 @@ let currentDataMode = "demo";
 let profileSaveTimer = null;
 let loadsRealtimeChannel = null;
 let currentTopRecommendationId = null;
+let latestFuelSnapshot = null;
+let routeEstimatesByLoad = new Map();
+let marketIntelligenceByLocation = new Map();
 let autocompleteState = {
   origin: { index: -1, matches: [] },
   destination: { index: -1, matches: [] }
@@ -273,6 +292,7 @@ async function loadBaseData() {
 
 function useDemoLoads() {
   allLoads = demoLoads.map(enrichLoadCoordinates);
+  buildMarketIntelligence(allLoads);
   activeLoads = [...allLoads];
   setDataMode("demo");
   render();
@@ -349,6 +369,7 @@ async function loadOnlineLoads() {
   const onlineLoads = (data || []).map(mapDatabaseLoad);
   if (onlineLoads.length) {
     allLoads = onlineLoads;
+    buildMarketIntelligence(allLoads);
     activeLoads = [...onlineLoads];
     setDataMode("live");
     render();
@@ -559,30 +580,315 @@ function setupAutocomplete(input, menu, key) {
   });
 }
 
+function normalizeMarketKey(value) {
+  return normalizeSearch(value);
+}
+
+function median(values) {
+  const sorted = values
+    .map(Number)
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+
+  if (!sorted.length) return null;
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function buildMarketIntelligence(loads) {
+  const grouped = new Map();
+
+  for (const load of loads) {
+    const key = normalizeMarketKey(load.origin);
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        location: load.origin,
+        totalLoads: 0,
+        equipmentCounts: new Map(),
+        ratePerMileSamples: [],
+        newestPickup: null
+      });
+    }
+
+    const group = grouped.get(key);
+    group.totalLoads += 1;
+    group.equipmentCounts.set(
+      load.equipment,
+      (group.equipmentCounts.get(load.equipment) || 0) + 1
+    );
+
+    const gross = Number(load.gross);
+    const miles = Number(load.loadedMiles);
+    if (Number.isFinite(gross) && gross > 0 && Number.isFinite(miles) && miles > 0) {
+      group.ratePerMileSamples.push(gross / miles);
+    }
+
+    const pickupTime = load.pickupAt ? new Date(load.pickupAt).getTime() : null;
+    if (Number.isFinite(pickupTime)) {
+      group.newestPickup = Math.max(group.newestPickup || 0, pickupTime);
+    }
+  }
+
+  marketIntelligenceByLocation = new Map();
+
+  for (const [key, group] of grouped.entries()) {
+    marketIntelligenceByLocation.set(key, {
+      ...group,
+      medianRatePerMile: median(group.ratePerMileSamples),
+      rateSampleCount: group.ratePerMileSamples.length
+    });
+  }
+
+  elements.marketDataStatus.textContent =
+    `${loads.length} active load${loads.length === 1 ? "" : "s"} analyzed`;
+}
+
+function marketDataForLoad(load) {
+  const group = marketIntelligenceByLocation.get(
+    normalizeMarketKey(load.destination)
+  );
+
+  if (!group) {
+    return {
+      score: 35,
+      outboundLoads: 0,
+      equipmentLoads: 0,
+      medianRatePerMile: null,
+      confidence: "Low"
+    };
+  }
+
+  const equipmentLoads = group.equipmentCounts.get(load.equipment) || 0;
+  const volumeScore = Math.min(group.totalLoads * 7, 35);
+  const equipmentScore = Math.min(equipmentLoads * 10, 30);
+  const rateScore = group.medianRatePerMile
+    ? Math.min(Math.max((group.medianRatePerMile - 1.5) * 18, 0), 25)
+    : 0;
+
+  const score = Math.round(
+    Math.max(20, Math.min(100, 30 + volumeScore + equipmentScore + rateScore))
+  );
+
+  return {
+    score,
+    outboundLoads: group.totalLoads,
+    equipmentLoads,
+    medianRatePerMile: group.medianRatePerMile,
+    confidence:
+      group.totalLoads >= 5 && group.rateSampleCount >= 3
+        ? "High"
+        : group.totalLoads >= 2
+          ? "Medium"
+          : "Low"
+  };
+}
+
+function effectiveFuelPrice() {
+  const override = Number(elements.fuelPriceOverride.value);
+  if (Number.isFinite(override) && override > 0) return override;
+
+  const livePrice = Number(latestFuelSnapshot?.price_per_gallon);
+  if (Number.isFinite(livePrice) && livePrice > 0) return livePrice;
+
+  return null;
+}
+
+function routeEstimateForLoad(load) {
+  return routeEstimatesByLoad.get(String(load.id)) || null;
+}
+
+function estimateHos(load, routeDurationMinutes) {
+  const driveRemainingMinutes =
+    Math.max(Number(elements.hosDriveRemaining.value) || 0, 0) * 60;
+  const shiftRemainingMinutes =
+    Math.max(Number(elements.hosShiftRemaining.value) || 0, 0) * 60;
+  const cycleRemainingMinutes =
+    Math.max(Number(elements.hosCycleRemaining.value) || 0, 0) * 60;
+
+  const driveMinutes =
+    Number(routeDurationMinutes) > 0
+      ? Number(routeDurationMinutes)
+      : (Number(load.loadedMiles || 0) + Number(load.deadhead || 0)) / 50 * 60;
+
+  const immediateFeasible =
+    driveMinutes <= driveRemainingMinutes &&
+    driveMinutes <= shiftRemainingMinutes &&
+    driveMinutes <= cycleRemainingMinutes;
+
+  const dailyDrivingMinutes = 11 * 60;
+  const requiredLongBreaks = Math.max(
+    0,
+    Math.ceil(Math.max(driveMinutes - driveRemainingMinutes, 0) / dailyDrivingMinutes)
+  );
+
+  const arrivalRisk =
+    immediateFeasible
+      ? "Low"
+      : requiredLongBreaks <= 1
+        ? "Medium"
+        : "High";
+
+  return {
+    driveMinutes,
+    immediateFeasible,
+    requiredLongBreaks,
+    arrivalRisk
+  };
+}
+
+function updateCostModelUi() {
+  const detailed = elements.costModel.value === "detailed";
+  elements.costPerMileLabel.textContent = detailed
+    ? translated("Other operating cost / mile")
+    : translated("Operating cost / mile");
+  elements.costPerMileHelp.textContent = detailed
+    ? translated("Fuel is calculated separately from MPG and diesel price.")
+    : translated("Includes fuel in Simple mode.");
+  elements.calculationModeInfo.textContent = detailed
+    ? translated("Detailed mode calculates fuel, other mileage costs and tolls separately.")
+    : translated("Simple mode uses total miles × operating cost per mile, then adds tolls.");
+}
+
+async function loadFuelSnapshot() {
+  const { data, error } = await supabaseClient
+    .from("fuel_price_snapshots")
+    .select("country, region_code, price_per_gallon, observed_at, source")
+    .eq("country", "US")
+    .order("observed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("Fuel snapshot unavailable:", error.message);
+    latestFuelSnapshot = null;
+    elements.fuelDataStatus.textContent = translated("Manual override");
+    return;
+  }
+
+  latestFuelSnapshot = data || null;
+
+  if (latestFuelSnapshot) {
+    elements.fuelDataStatus.textContent =
+      `${currency(latestFuelSnapshot.price_per_gallon)}/gal · ` +
+      `${latestFuelSnapshot.source || "EIA"}`;
+  } else {
+    elements.fuelDataStatus.textContent = translated("Manual override");
+  }
+}
+
+async function loadRouteEstimates() {
+  if (!currentUser) {
+    routeEstimatesByLoad = new Map();
+    elements.tollDataStatus.textContent = translated("Published/manual");
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("route_estimates")
+    .select(
+      "load_id, loaded_miles, deadhead_miles, duration_minutes, toll_cost, fuel_cost, provider, hos_breaks, hos_arrival_risk, calculated_at"
+    )
+    .eq("user_id", currentUser.id)
+    .order("calculated_at", { ascending: false });
+
+  if (error) {
+    console.warn("Route estimates unavailable:", error.message);
+    routeEstimatesByLoad = new Map();
+    elements.tollDataStatus.textContent = translated("Published/manual");
+    return;
+  }
+
+  routeEstimatesByLoad = new Map();
+  for (const row of data || []) {
+    const key = String(row.load_id);
+    if (!routeEstimatesByLoad.has(key)) routeEstimatesByLoad.set(key, row);
+  }
+
+  const trimbleCount = [...routeEstimatesByLoad.values()].filter(
+    estimate => estimate.provider === "trimble"
+  ).length;
+
+  elements.tollDataStatus.textContent = trimbleCount
+    ? `${trimbleCount} ${translated("Trimble route estimates")}`
+    : translated("Published/manual");
+}
+
 function calculateLoad(load) {
+  const costModel = elements.costModel.value;
   const costPerMile = Math.max(Number(elements.costPerMile.value) || 0, 0);
-  const totalMiles = Number(load.loadedMiles || 0) + Number(load.deadhead || 0);
-  const estimatedCost = totalMiles * costPerMile + Number(load.tolls || 0);
+  const routeEstimate = routeEstimateForLoad(load);
+
+  const loadedMiles =
+    Number(routeEstimate?.loaded_miles) > 0
+      ? Number(routeEstimate.loaded_miles)
+      : Number(load.loadedMiles || 0);
+  const deadhead =
+    Number(routeEstimate?.deadhead_miles) >= 0
+      ? Number(routeEstimate.deadhead_miles)
+      : Number(load.deadhead || 0);
+  const totalMiles = loadedMiles + deadhead;
+  const tolls =
+    Number(routeEstimate?.toll_cost) >= 0
+      ? Number(routeEstimate.toll_cost)
+      : Number(load.tolls || 0);
+
+  const fuelPrice = effectiveFuelPrice();
+  const loadedMpg = Math.max(Number(elements.loadedMpg.value) || 0, 0.1);
+  const emptyMpg = Math.max(Number(elements.emptyMpg.value) || 0, 0.1);
+  const fuelGallons = loadedMiles / loadedMpg + deadhead / emptyMpg;
+  const calculatedFuelCost =
+    fuelPrice == null ? null : fuelGallons * fuelPrice;
+
+  let fuelCost = 0;
+  let otherOperatingCost = totalMiles * costPerMile;
+  let estimatedCost;
+
+  if (costModel === "detailed") {
+    fuelCost =
+      Number(routeEstimate?.fuel_cost) >= 0
+        ? Number(routeEstimate.fuel_cost)
+        : Number(calculatedFuelCost || 0);
+    estimatedCost = otherOperatingCost + fuelCost + tolls;
+  } else {
+    estimatedCost = otherOperatingCost + tolls;
+  }
+
   const hasRate =
     load.gross !== null &&
     load.gross !== undefined &&
     load.gross !== "" &&
     Number.isFinite(Number(load.gross));
 
+  const market = marketDataForLoad(load);
+  const hos = estimateHos(load, routeEstimate?.duration_minutes);
+  const preferredEquipment = elements.preferredEquipment.value;
+  const equipmentMatchesPreference =
+    !preferredEquipment || load.equipment === preferredEquipment;
+
   if (!hasRate) {
     return {
       ...load,
-      hasRate: false,
+      loadedMiles,
+      deadhead,
       totalMiles,
+      tolls,
+      fuelPrice,
+      fuelGallons,
+      fuelCost,
+      otherOperatingCost,
       estimatedCost,
+      market,
+      hos,
+      routeEstimate,
+      hasRate: false,
       profit: null,
       grossPerTotalMile: null,
       netPerTotalMile: null,
       score: null,
       costPerMile,
-      equipmentMatchesPreference:
-        !elements.preferredEquipment.value ||
-        load.equipment === elements.preferredEquipment.value
+      equipmentMatchesPreference
     };
   }
 
@@ -590,29 +896,47 @@ function calculateLoad(load) {
   const profit = gross - estimatedCost;
   const grossPerTotalMile = totalMiles > 0 ? gross / totalMiles : 0;
   const netPerTotalMile = totalMiles > 0 ? profit / totalMiles : 0;
-  const deadheadPenalty = Math.min((Number(load.deadhead || 0) / 180) * 20, 20);
-  const profitScore = Math.min(Math.max((netPerTotalMile / 1.6) * 45, 0), 45);
-  const marketScore = ((Number(load.destinationQuality || 50)) / 100) * 25;
-  const rateScore = Math.min((grossPerTotalMile / 3.2) * 20, 20);
-  const preferredEquipment = elements.preferredEquipment.value;
-  const equipmentMatchesPreference =
-    !preferredEquipment || load.equipment === preferredEquipment;
+  const deadheadPenalty = Math.min((deadhead / 180) * 20, 20);
+  const hosPenalty =
+    hos.arrivalRisk === "High" ? 14 : hos.arrivalRisk === "Medium" ? 7 : 0;
+  const profitScore = Math.min(Math.max((netPerTotalMile / 1.6) * 42, 0), 42);
+  const marketScore = (market.score / 100) * 25;
+  const rateScore = Math.min((grossPerTotalMile / 3.2) * 18, 18);
   const equipmentBonus =
     preferredEquipment && equipmentMatchesPreference ? 5 : 0;
 
   const score = Math.round(
     Math.max(
       0,
-      Math.min(100, 10 + profitScore + marketScore + rateScore + equipmentBonus - deadheadPenalty)
+      Math.min(
+        100,
+        10 +
+          profitScore +
+          marketScore +
+          rateScore +
+          equipmentBonus -
+          deadheadPenalty -
+          hosPenalty
+      )
     )
   );
 
   return {
     ...load,
+    loadedMiles,
+    deadhead,
+    totalMiles,
+    tolls,
+    fuelPrice,
+    fuelGallons,
+    fuelCost,
+    otherOperatingCost,
+    estimatedCost,
+    market,
+    hos,
+    routeEstimate,
     hasRate: true,
     gross,
-    totalMiles,
-    estimatedCost,
     profit,
     grossPerTotalMile,
     netPerTotalMile,
@@ -635,7 +959,7 @@ function recommendationData(load) {
     return {
       label: "Recommended",
       className: "",
-      reason: `Strong estimated return, ${load.deadhead} deadhead miles, and a favorable destination market.`
+      reason: `Strong estimated return, ${load.deadhead} deadhead miles, market score ${load.market.score}/100, and ${load.hos.arrivalRisk.toLowerCase()} HOS arrival risk.`
     };
   }
 
@@ -643,7 +967,7 @@ function recommendationData(load) {
     return {
       label: "Review",
       className: "review",
-      reason: "Potentially useful, but review deadhead, appointment details, and destination conditions."
+      reason: `Potentially useful, but review deadhead, appointments, market confidence (${load.market.confidence}), and HOS arrival risk (${load.hos.arrivalRisk}).`
     };
   }
 
@@ -929,9 +1253,21 @@ function filterLoads() {
 
 function localProfileValues() {
   return {
-    operating_cost_per_mile: Number(elements.costPerMile.value) || 1.55,
+    operating_cost_per_mile: Number(elements.costPerMile.value) || 0,
     max_deadhead: Number(elements.maxDeadhead.value) || 150,
-    preferred_equipment: elements.preferredEquipment.value || null
+    preferred_equipment: elements.preferredEquipment.value || null,
+    cost_model: elements.costModel.value,
+    loaded_mpg: Number(elements.loadedMpg.value) || 6.5,
+    empty_mpg: Number(elements.emptyMpg.value) || 7.5,
+    fuel_price_override: elements.fuelPriceOverride.value
+      ? Number(elements.fuelPriceOverride.value)
+      : null,
+    toll_program: elements.tollProgram.value || null,
+    hos_drive_remaining_hours: Number(elements.hosDriveRemaining.value) || 0,
+    hos_shift_remaining_hours: Number(elements.hosShiftRemaining.value) || 0,
+    hos_cycle_remaining_hours: Number(elements.hosCycleRemaining.value) || 0,
+    hos_rule: elements.hosRule.value,
+    hos_source: "manual"
   };
 }
 
@@ -939,9 +1275,18 @@ function saveLocalOperatingProfile() {
   localStorage.setItem(
     STORAGE_KEYS.profile,
     JSON.stringify({
+      costModel: elements.costModel.value,
       costPerMile: elements.costPerMile.value,
       maxDeadhead: elements.maxDeadhead.value,
-      preferredEquipment: elements.preferredEquipment.value
+      preferredEquipment: elements.preferredEquipment.value,
+      loadedMpg: elements.loadedMpg.value,
+      emptyMpg: elements.emptyMpg.value,
+      fuelPriceOverride: elements.fuelPriceOverride.value,
+      tollProgram: elements.tollProgram.value,
+      hosDriveRemaining: elements.hosDriveRemaining.value,
+      hosShiftRemaining: elements.hosShiftRemaining.value,
+      hosCycleRemaining: elements.hosCycleRemaining.value,
+      hosRule: elements.hosRule.value
     })
   );
 }
@@ -971,9 +1316,19 @@ function restoreLocalOperatingProfile() {
   try {
     const profile = JSON.parse(localStorage.getItem(STORAGE_KEYS.profile) || "null");
     if (!profile) return;
+    elements.costModel.value = profile.costModel ?? "simple";
     elements.costPerMile.value = profile.costPerMile ?? "1.55";
     elements.maxDeadhead.value = profile.maxDeadhead ?? "150";
     elements.preferredEquipment.value = profile.preferredEquipment ?? "";
+    elements.loadedMpg.value = profile.loadedMpg ?? "6.5";
+    elements.emptyMpg.value = profile.emptyMpg ?? "7.5";
+    elements.fuelPriceOverride.value = profile.fuelPriceOverride ?? "";
+    elements.tollProgram.value = profile.tollProgram ?? "";
+    elements.hosDriveRemaining.value = profile.hosDriveRemaining ?? "11";
+    elements.hosShiftRemaining.value = profile.hosShiftRemaining ?? "14";
+    elements.hosCycleRemaining.value = profile.hosCycleRemaining ?? "70";
+    elements.hosRule.value = profile.hosRule ?? "US70";
+    updateCostModelUi();
   } catch (error) {
     console.warn("Could not restore local operating profile", error);
   }
@@ -984,7 +1339,7 @@ async function loadRemoteOperatingProfile() {
 
   const { data, error } = await supabaseClient
     .from("driver_profiles")
-    .select("operating_cost_per_mile, max_deadhead, preferred_equipment")
+    .select("operating_cost_per_mile, max_deadhead, preferred_equipment, cost_model, loaded_mpg, empty_mpg, fuel_price_override, toll_program, hos_drive_remaining_hours, hos_shift_remaining_hours, hos_cycle_remaining_hours, hos_rule, hos_source")
     .eq("user_id", currentUser.id)
     .maybeSingle();
 
@@ -998,9 +1353,23 @@ async function loadRemoteOperatingProfile() {
     return;
   }
 
+  elements.costModel.value = data.cost_model ?? "simple";
   elements.costPerMile.value = data.operating_cost_per_mile ?? "1.55";
   elements.maxDeadhead.value = data.max_deadhead ?? "150";
   elements.preferredEquipment.value = data.preferred_equipment ?? "";
+  elements.loadedMpg.value = data.loaded_mpg ?? "6.5";
+  elements.emptyMpg.value = data.empty_mpg ?? "7.5";
+  elements.fuelPriceOverride.value = data.fuel_price_override ?? "";
+  elements.tollProgram.value = data.toll_program ?? "";
+  elements.hosDriveRemaining.value = data.hos_drive_remaining_hours ?? "11";
+  elements.hosShiftRemaining.value = data.hos_shift_remaining_hours ?? "14";
+  elements.hosCycleRemaining.value = data.hos_cycle_remaining_hours ?? "70";
+  elements.hosRule.value = data.hos_rule ?? "US70";
+  elements.hosDataStatus.textContent =
+    data.hos_source === "samsara"
+      ? translated("Samsara live clocks")
+      : translated("Manual clocks");
+  updateCostModelUi();
   saveLocalOperatingProfile();
   render();
 }
@@ -1128,6 +1497,10 @@ async function updateAccountUi() {
 async function handleSession(session) {
   currentUser = session?.user || null;
   await updateAccountUi();
+  await Promise.all([
+    loadFuelSnapshot(),
+    loadRouteEstimates()
+  ]);
   await loadOnlineLoads();
   subscribeToLoadChanges();
 }
@@ -1354,6 +1727,32 @@ function showLoadDetails(loadId) {
       <div class="detail-box"><span>Loaded miles</span><strong>${load.loadedMiles} mi</strong></div>
       <div class="detail-box"><span>Deadhead</span><strong>${load.deadhead} mi</strong></div>
       <div class="detail-box"><span>Recommendation</span><strong>${load.hasRate ? `${load.score}/100` : "Rate needed"}</strong></div>
+    </div>
+
+    <div class="cost-breakdown">
+      <div class="cost-breakdown-row"><span>Other mileage cost</span><strong>${currency(load.otherOperatingCost)}</strong></div>
+      ${
+        elements.costModel.value === "detailed"
+          ? `<div class="cost-breakdown-row"><span>Estimated fuel (${load.fuelGallons.toFixed(1)} gal)</span><strong>${load.fuelPrice ? currency(load.fuelCost) : "Fuel price needed"}</strong></div>`
+          : ""
+      }
+      <div class="cost-breakdown-row"><span>Estimated tolls</span><strong>${currency(load.tolls)}</strong></div>
+      <div class="cost-breakdown-row total"><span>Total estimated trip cost</span><strong>${currency(load.estimatedCost)}</strong></div>
+    </div>
+
+    <div class="intelligence-grid">
+      <div class="intelligence-box">
+        <span>Destination market</span>
+        <strong>${load.market.score}/100 · ${load.market.outboundLoads} outbound</strong>
+      </div>
+      <div class="intelligence-box">
+        <span>HOS arrival risk</span>
+        <strong>${load.hos.arrivalRisk}${load.hos.requiredLongBreaks ? ` · ${load.hos.requiredLongBreaks} long rest` : ""}</strong>
+      </div>
+      <div class="intelligence-box">
+        <span>Routing data</span>
+        <strong>${load.routeEstimate?.provider === "trimble" ? "Trimble live estimate" : "Published/local estimate"}</strong>
+      </div>
     </div>
 
     ${mapMarkup}
@@ -1617,12 +2016,27 @@ elements.searchForm.addEventListener("submit", event => {
   filterLoads();
 });
 
-[elements.costPerMile, elements.maxDeadhead, elements.preferredEquipment].forEach(input => {
+[
+  elements.costModel,
+  elements.costPerMile,
+  elements.maxDeadhead,
+  elements.preferredEquipment,
+  elements.loadedMpg,
+  elements.emptyMpg,
+  elements.fuelPriceOverride,
+  elements.tollProgram,
+  elements.hosDriveRemaining,
+  elements.hosShiftRemaining,
+  elements.hosCycleRemaining,
+  elements.hosRule
+].forEach(input => {
   input.addEventListener("input", () => {
+    updateCostModelUi();
     saveOperatingProfile();
     render();
   });
   input.addEventListener("change", () => {
+    updateCostModelUi();
     saveOperatingProfile();
     render();
   });
@@ -1800,6 +2214,7 @@ elements.adminLoadList.addEventListener("click", event => {
 setupAutocomplete(elements.origin, elements.originSuggestions, "origin");
 setupAutocomplete(elements.destination, elements.destinationSuggestions, "destination");
 restoreLocalOperatingProfile();
+updateCostModelUi();
 loadBaseData();
 initializeAuth();
 

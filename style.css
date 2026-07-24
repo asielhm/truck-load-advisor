@@ -1873,3 +1873,132 @@ p {
   color: #66d3a1;
   font-weight: 900;
 }
+
+
+.profile-advanced {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+}
+
+.profile-subheading {
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: #203b53;
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.01em;
+}
+
+.field-help {
+  margin-top: 5px;
+  display: block;
+  color: var(--muted);
+  font-size: 0.69rem;
+  line-height: 1.4;
+}
+
+.live-data-status {
+  margin-top: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #f8fbfd;
+}
+
+.live-status-row {
+  min-height: 38px;
+  padding: 8px 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.73rem;
+}
+
+.live-status-row:last-child {
+  border-bottom: 0;
+}
+
+.live-status-row span {
+  color: var(--muted);
+  font-weight: 720;
+}
+
+.live-status-row strong {
+  color: #173e5d;
+  text-align: right;
+  font-size: 0.7rem;
+}
+
+.source-icon.live {
+  color: #0e6b48;
+  background: #ddf5e8;
+}
+
+.cost-breakdown {
+  margin-top: 18px;
+  padding: 15px;
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f8fbfd;
+}
+
+.cost-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.cost-breakdown-row strong {
+  color: #1e3b54;
+}
+
+.cost-breakdown-row.total {
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+  font-weight: 850;
+}
+
+.intelligence-grid {
+  margin-top: 17px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.intelligence-box {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+}
+
+.intelligence-box span,
+.intelligence-box strong {
+  display: block;
+}
+
+.intelligence-box span {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.intelligence-box strong {
+  margin-top: 5px;
+  color: #193a55;
+  font-size: 0.84rem;
+}
+
+@media (max-width: 600px) {
+  .profile-advanced,
+  .intelligence-grid {
+    grid-template-columns: 1fr;
+  }
+}

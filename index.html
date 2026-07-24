@@ -216,8 +216,19 @@
 
               <div class="profile-fields">
                 <div class="field">
-                  <label for="costPerMile">Operating cost / mile</label>
-                  <input id="costPerMile" type="number" value="1.55" min="0.10" step="0.05" />
+                  <label for="costModel">Cost model</label>
+                  <select id="costModel">
+                    <option value="simple">Simple — all-in cost per mile</option>
+                    <option value="detailed">Detailed — fuel separated</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="costPerMile" id="costPerMileLabel">Operating cost / mile</label>
+                  <input id="costPerMile" type="number" value="1.55" min="0" step="0.05" />
+                  <small class="field-help" id="costPerMileHelp">
+                    Includes fuel in Simple mode.
+                  </small>
                 </div>
 
                 <div class="field">
@@ -233,14 +244,83 @@
                     <option value="Reefer">Reefer</option>
                     <option value="Flatbed">Flatbed</option>
                     <option value="Power Only">Power Only</option>
-                <option value="Box Truck">Box Truck</option>
+                    <option value="Box Truck">Box Truck</option>
                   </select>
+                </div>
+
+                <div class="profile-advanced" id="detailedCostFields">
+                  <div class="field">
+                    <label for="loadedMpg">Loaded MPG</label>
+                    <input id="loadedMpg" type="number" value="6.5" min="1" step="0.1" />
+                  </div>
+                  <div class="field">
+                    <label for="emptyMpg">Empty MPG</label>
+                    <input id="emptyMpg" type="number" value="7.5" min="1" step="0.1" />
+                  </div>
+                  <div class="field">
+                    <label for="fuelPriceOverride">Diesel price override</label>
+                    <input id="fuelPriceOverride" type="number" min="0" step="0.01" placeholder="Use live price" />
+                  </div>
+                  <div class="field">
+                    <label for="tollProgram">Toll program</label>
+                    <select id="tollProgram">
+                      <option value="">No discount selected</option>
+                      <option value="E-ZPass">E-ZPass</option>
+                      <option value="SunPass">SunPass</option>
+                      <option value="Peach Pass">Peach Pass</option>
+                      <option value="TxTag">TxTag</option>
+                      <option value="FasTrak">FasTrak</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="profile-subheading">Hours of Service</div>
+
+                <div class="profile-advanced">
+                  <div class="field">
+                    <label for="hosDriveRemaining">Driving remaining</label>
+                    <input id="hosDriveRemaining" type="number" value="11" min="0" max="14" step="0.25" />
+                  </div>
+                  <div class="field">
+                    <label for="hosShiftRemaining">Shift remaining</label>
+                    <input id="hosShiftRemaining" type="number" value="14" min="0" max="24" step="0.25" />
+                  </div>
+                  <div class="field">
+                    <label for="hosCycleRemaining">Cycle remaining</label>
+                    <input id="hosCycleRemaining" type="number" value="70" min="0" max="80" step="0.25" />
+                  </div>
+                  <div class="field">
+                    <label for="hosRule">HOS rule</label>
+                    <select id="hosRule">
+                      <option value="US70">US property — 70/8</option>
+                      <option value="US60">US property — 60/7</option>
+                      <option value="CA1">Canada Cycle 1</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div class="info-box">
-                Current estimates include total mileage, operating cost, and listed tolls.
-                Live fuel, toll, HOS, and market information will be connected later.
+              <div class="info-box" id="calculationModeInfo">
+                Simple mode uses total miles × operating cost per mile, then adds tolls.
+              </div>
+
+              <div class="live-data-status" id="liveDataStatus">
+                <div class="live-status-row">
+                  <span>Fuel</span>
+                  <strong id="fuelDataStatus">Loading…</strong>
+                </div>
+                <div class="live-status-row">
+                  <span>Tolls</span>
+                  <strong id="tollDataStatus">Published/manual</strong>
+                </div>
+                <div class="live-status-row">
+                  <span>HOS</span>
+                  <strong id="hosDataStatus">Manual clocks</strong>
+                </div>
+                <div class="live-status-row">
+                  <span>Market</span>
+                  <strong id="marketDataStatus">Supabase loads</strong>
+                </div>
               </div>
             </div>
 
@@ -378,10 +458,24 @@
             </div>
           </div>
           <div class="source-item">
-            <span class="source-icon planned">3</span>
+            <span class="source-icon pending">3</span>
             <div>
-              <strong>Scheduled synchronization</strong>
-              <p>A protected Edge Function will import, normalize, deduplicate, update, and expire freight automatically.</p>
+              <strong>EIA diesel prices</strong>
+              <p>Weekly U.S. on-highway diesel data is cached in Supabase and used by the detailed cost model.</p>
+            </div>
+          </div>
+          <div class="source-item">
+            <span class="source-icon planned">4</span>
+            <div>
+              <strong>Trimble commercial routing</strong>
+              <p>Truck distance, travel time, tolls and HOS rest stops activate when a licensed API key is configured.</p>
+            </div>
+          </div>
+          <div class="source-item">
+            <span class="source-icon live">5</span>
+            <div>
+              <strong>Internal market intelligence</strong>
+              <p>Destination scores are recalculated from available Supabase loads, equipment compatibility and rate samples.</p>
             </div>
           </div>
         </div>
