@@ -131,10 +131,10 @@ function escapeHtml(value) {
 }
 
 function formatDate(value, fallback = "Appointment pending") {
-  if (!value) return fallback;
+  if (!value) return window.TLA_I18N?.translateString(fallback) || fallback;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return fallback;
-  return date.toLocaleString("en-US", {
+  if (Number.isNaN(date.getTime())) return window.TLA_I18N?.translateString(fallback) || fallback;
+  return date.toLocaleString(window.TLA_I18N?.getLocale() || "en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -151,12 +151,31 @@ function toLocalDateTimeInput(value) {
   return local.toISOString().slice(0, 16);
 }
 
-function splitCityState(value) {
-  const parts = String(value || "").split(",").map(part => part.trim());
-  return {
-    city: parts[0] || "",
-    state: parts[1] || ""
-  };
+const CANADIAN_PROVINCES = new Set([
+  "AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT"
+]);
+
+function splitLocation(value) {
+  const parts = String(value || "")
+    .split(",")
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  if (parts.length < 2) {
+    return { city: "", state: "", country: "" };
+  }
+
+  let country = parts.length >= 3 ? parts.pop().toUpperCase() : "";
+  const state = (parts.pop() || "").toUpperCase();
+  const city = parts.join(", ");
+
+  if (!country) country = CANADIAN_PROVINCES.has(state) ? "CA" : "US";
+
+  return { city, state, country };
+}
+
+function formatLocation(city, state, country = "US") {
+  return [city, state, country].filter(Boolean).join(", ");
 }
 
 async function fetchJson(url) {
@@ -186,6 +205,7 @@ async function loadBaseData() {
 
     demoLoads = Array.isArray(loadedLoads) ? loadedLoads : [];
     cities = Array.isArray(loadedCities) ? loadedCities : [];
+    rebuildCitySearchIndex();
     elements.adminCityList.innerHTML = cities
       .map(city => `<option value="${escapeHtml(city)}"></option>`)
       .join("");
@@ -217,8 +237,12 @@ function mapDatabaseLoad(row) {
     sourceLoadId: row.source_load_id,
     sourceUrl: row.source_url || "",
     status: row.status || "available",
-    origin: `${row.origin_city}, ${row.origin_state}`,
-    destination: `${row.destination_city}, ${row.destination_state}`,
+    origin: formatLocation(row.origin_city, row.origin_state, row.origin_country || "US"),
+    destination: formatLocation(
+      row.destination_city,
+      row.destination_state,
+      row.destination_country || "US"
+    ),
     equipment: row.equipment,
     gross: Number(row.gross_rate || 0),
     loadedMiles: Number(row.loaded_miles || 0),
@@ -287,29 +311,50 @@ function subscribeToLoadChanges() {
 }
 
 function normalizeSearch(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+let citySearchIndex = [];
+
+function rebuildCitySearchIndex() {
+  citySearchIndex = cities.map(label => {
+    const normalized = normalizeSearch(label);
+    const cityName = normalizeSearch(label.split(",")[0]);
+    return { label, normalized, cityName };
+  });
 }
 
 function cityMatches(query) {
   const normalized = normalizeSearch(query);
-  if (!normalized) return cities.slice(0, 10);
+  if (!normalized) return cities.slice(0, 12);
 
-  return cities
-    .map(city => {
-      const lower = city.toLowerCase();
-      const starts = lower.startsWith(normalized);
-      const wordStarts = lower.split(/[\s,.-]+/).some(word => word.startsWith(normalized));
-      const contains = lower.includes(normalized);
-      return {
-        city,
-        rank: starts ? 0 : wordStarts ? 1 : contains ? 2 : 99,
-        position: lower.indexOf(normalized)
-      };
-    })
-    .filter(item => item.rank < 99)
-    .sort((a, b) => a.rank - b.rank || a.position - b.position || a.city.localeCompare(b.city))
-    .slice(0, 12)
-    .map(item => item.city);
+  const queryTokens = normalized.split(/\s+/).filter(Boolean);
+  const prefix = [];
+  const wordPrefix = [];
+  const contains = [];
+
+  for (const item of citySearchIndex) {
+    if (!queryTokens.every(token => item.normalized.includes(token))) continue;
+
+    if (item.cityName.startsWith(normalized) || item.normalized.startsWith(normalized)) {
+      if (prefix.length < 12) prefix.push(item.label);
+      continue;
+    }
+
+    const words = item.normalized.split(/[\s,.-]+/);
+    if (queryTokens.every(token => words.some(word => word.startsWith(token)))) {
+      if (wordPrefix.length < 12) wordPrefix.push(item.label);
+      continue;
+    }
+
+    if (contains.length < 12) contains.push(item.label);
+  }
+
+  return [...prefix, ...wordPrefix, ...contains].slice(0, 12);
 }
 
 function highlightMatch(city, query) {
@@ -866,11 +911,14 @@ function showLoadDetails(loadId) {
 }
 
 function adminLoadPayload() {
-  const origin = splitCityState(elements.adminOrigin.value);
-  const destination = splitCityState(elements.adminDestination.value);
+  const origin = splitLocation(elements.adminOrigin.value);
+  const destination = splitLocation(elements.adminDestination.value);
 
-  if (!origin.city || !origin.state || !destination.city || !destination.state) {
-    throw new Error("Origin and destination must use the format City, ST.");
+  if (
+    !origin.city || !origin.state || !origin.country ||
+    !destination.city || !destination.state || !destination.country
+  ) {
+    throw new Error("Origin and destination must use the format City, ST, Country.");
   }
 
   return {
@@ -878,8 +926,10 @@ function adminLoadPayload() {
     source_load_id: elements.adminSourceLoadId.value.trim(),
     origin_city: origin.city,
     origin_state: origin.state.toUpperCase(),
+    origin_country: origin.country.toUpperCase(),
     destination_city: destination.city,
     destination_state: destination.state.toUpperCase(),
+    destination_country: destination.country.toUpperCase(),
     equipment: elements.adminEquipment.value,
     gross_rate: Number(elements.adminGrossRate.value),
     loaded_miles: Number(elements.adminLoadedMiles.value),
@@ -913,8 +963,12 @@ function resetAdminForm() {
 }
 
 function adminLoadRow(row) {
-  const origin = `${row.origin_city}, ${row.origin_state}`;
-  const destination = `${row.destination_city}, ${row.destination_state}`;
+  const origin = formatLocation(row.origin_city, row.origin_state, row.origin_country || "US");
+  const destination = formatLocation(
+    row.destination_city,
+    row.destination_state,
+    row.destination_country || "US"
+  );
   return `
     <article class="admin-load-row">
       <div class="admin-load-route">
@@ -976,8 +1030,16 @@ async function editAdminLoad(id) {
   elements.adminLoadId.value = data.id;
   elements.adminSourceName.value = data.source_name || "";
   elements.adminSourceLoadId.value = data.source_load_id || "";
-  elements.adminOrigin.value = `${data.origin_city}, ${data.origin_state}`;
-  elements.adminDestination.value = `${data.destination_city}, ${data.destination_state}`;
+  elements.adminOrigin.value = formatLocation(
+    data.origin_city,
+    data.origin_state,
+    data.origin_country || "US"
+  );
+  elements.adminDestination.value = formatLocation(
+    data.destination_city,
+    data.destination_state,
+    data.destination_country || "US"
+  );
   elements.adminEquipment.value = data.equipment || "Dry Van";
   elements.adminGrossRate.value = data.gross_rate ?? "";
   elements.adminWeight.value = data.weight_lbs ?? "";
@@ -1247,3 +1309,17 @@ setupAutocomplete(elements.destination, elements.destinationSuggestions, "destin
 restoreLocalOperatingProfile();
 loadBaseData();
 initializeAuth();
+
+
+window.addEventListener("tla:languagechange", async () => {
+  if (currentUser) {
+    await loadOnlineLoads();
+  } else {
+    render();
+  }
+
+  if (currentProfile?.is_admin) {
+    await loadAdminLoads();
+    await loadProviderStatuses();
+  }
+});

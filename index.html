@@ -39,6 +39,14 @@
       </nav>
 
       <div class="account-actions">
+        <div class="language-switcher">
+          <label class="sr-only" for="languageSelect">Language</label>
+          <select id="languageSelect" aria-label="Language">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
+
         <button class="button button-secondary small-button" id="loginButton" type="button">
           Sign in
         </button>
@@ -138,7 +146,7 @@
               <input
                 id="origin"
                 type="text"
-                placeholder="e.g. Dallas, TX"
+                placeholder="e.g. Dallas, TX, US"
                 aria-autocomplete="list"
                 aria-controls="originSuggestions"
                 aria-expanded="false"
@@ -151,7 +159,7 @@
               <input
                 id="destination"
                 type="text"
-                placeholder="e.g. Atlanta, GA"
+                placeholder="e.g. Atlanta, GA, US"
                 aria-autocomplete="list"
                 aria-controls="destinationSuggestions"
                 aria-expanded="false"
@@ -285,7 +293,7 @@
             <span class="popular-label">Recommended</span>
             <div>
               <p class="plan-name">Pro</p>
-              <div class="price"><span>$</span>59<small>/month</small></div>
+              <div class="price"><span>$</span>49<small>/month</small></div>
               <p class="plan-description">For active owner-operators who search freight daily.</p>
             </div>
             <ul>
@@ -303,7 +311,7 @@
           <article class="pricing-card">
             <div>
               <p class="plan-name">Fleet</p>
-              <div class="price"><span>$</span>129<small>/month</small></div>
+              <div class="price"><span>$</span>69<small>/month</small></div>
               <p class="plan-description">For small fleets coordinating several trucks.</p>
             </div>
             <ul>
@@ -423,11 +431,11 @@
             <div class="form-two-columns">
               <div class="field">
                 <label for="adminOrigin">Origin</label>
-                <input id="adminOrigin" type="text" required list="adminCityList" placeholder="Dallas, TX" />
+                <input id="adminOrigin" type="text" required list="adminCityList" placeholder="Dallas, TX, US" />
               </div>
               <div class="field">
                 <label for="adminDestination">Destination</label>
-                <input id="adminDestination" type="text" required list="adminCityList" placeholder="Atlanta, GA" />
+                <input id="adminDestination" type="text" required list="adminCityList" placeholder="Atlanta, GA, US" />
               </div>
             </div>
 
@@ -538,6 +546,13 @@
         <strong>TruckLoad Advisor</strong>
         <p>Prototype for a future U.S. carrier decision-support platform.</p>
       </div>
+
+        <p class="location-attribution">
+          Location autocomplete data derived from
+          <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a>,
+          licensed under CC BY 4.0.
+        </p>
+
       <p class="footer-disclaimer">
         Demonstration and development environment. External load data may only be displayed
         under authorization from its original provider.
@@ -609,8 +624,8 @@
             <label for="selectedPlan">Selected plan</label>
             <select id="selectedPlan">
               <option value="Starter">Starter — $29/month</option>
-              <option value="Pro" selected>Pro — $59/month</option>
-              <option value="Fleet">Fleet — $129/month</option>
+              <option value="Pro" selected>Pro — $49/month</option>
+              <option value="Fleet">Fleet — $69/month</option>
             </select>
           </div>
 
@@ -653,6 +668,7 @@
     </div>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
 </body>
