@@ -261,6 +261,23 @@
     "Waiting for rate data": "Esperando datos de tarifas",
     "The visible loads do not include gross rates, so profitability cannot be ranked yet.":
       "Las cargas visibles no incluyen tarifas brutas, por lo que todavía no se pueden ordenar por rentabilidad.",
+
+    "Calculating with your operating profile…":
+      "Calculando con tu perfil operativo…",
+    "Profile applied": "Perfil aplicado",
+    "Any equipment": "Cualquier equipo",
+    "mile": "milla",
+    "Adjust the operating profile or search filters.":
+      "Ajustá el perfil operativo o los filtros de búsqueda.",
+    "There are no visible loads that match the active operating profile.":
+      "No hay cargas visibles que coincidan con el perfil operativo activo.",
+    "No loads are within the selected maximum deadhead.":
+      "No hay cargas dentro del máximo de millas vacías seleccionado.",
+    "No visible loads match preferred equipment":
+      "Ninguna carga visible coincide con el equipo preferido",
+    "The profile filters were applied, but the visible matching loads do not include gross rates, so profitability cannot be ranked yet.":
+      "Se aplicaron los filtros del perfil, pero las cargas coincidentes no incluyen tarifas brutas, por lo que todavía no pueden ordenarse por rentabilidad.",
+    "Calculated using": "Calculado usando",
     "Low score": "Puntuación baja"
   };
 

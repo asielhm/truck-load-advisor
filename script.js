@@ -76,6 +76,7 @@ const elements = {
   topScore: document.getElementById("topScore"),
   topRecommendationLabel: document.getElementById("topRecommendationLabel"),
   topRecommendationReason: document.getElementById("topRecommendationReason"),
+  topProfileSummary: document.getElementById("topProfileSummary"),
   topRecommendationButton: document.getElementById("topRecommendationButton"),
   adminNavLink: document.getElementById("adminNavLink"),
   adminSection: document.getElementById("admin"),
@@ -577,7 +578,11 @@ function calculateLoad(load) {
       profit: null,
       grossPerTotalMile: null,
       netPerTotalMile: null,
-      score: null
+      score: null,
+      costPerMile,
+      equipmentMatchesPreference:
+        !elements.preferredEquipment.value ||
+        load.equipment === elements.preferredEquipment.value
     };
   }
 
@@ -589,9 +594,11 @@ function calculateLoad(load) {
   const profitScore = Math.min(Math.max((netPerTotalMile / 1.6) * 45, 0), 45);
   const marketScore = ((Number(load.destinationQuality || 50)) / 100) * 25;
   const rateScore = Math.min((grossPerTotalMile / 3.2) * 20, 20);
+  const preferredEquipment = elements.preferredEquipment.value;
+  const equipmentMatchesPreference =
+    !preferredEquipment || load.equipment === preferredEquipment;
   const equipmentBonus =
-    elements.preferredEquipment.value &&
-    load.equipment === elements.preferredEquipment.value ? 5 : 0;
+    preferredEquipment && equipmentMatchesPreference ? 5 : 0;
 
   const score = Math.round(
     Math.max(
@@ -609,7 +616,9 @@ function calculateLoad(load) {
     profit,
     grossPerTotalMile,
     netPerTotalMile,
-    score
+    score,
+    costPerMile,
+    equipmentMatchesPreference
   };
 }
 
@@ -737,10 +746,34 @@ function translated(text) {
   return window.TLA_I18N?.translateString(text) || text;
 }
 
-function clearTopRecommendation() {
+function activeProfileCriteria() {
+  const preferredEquipment = elements.preferredEquipment.value;
+  const maxDeadhead = Math.max(Number(elements.maxDeadhead.value) || 0, 0);
+  const costPerMile = Math.max(Number(elements.costPerMile.value) || 0, 0);
+
+  return {
+    preferredEquipment,
+    maxDeadhead,
+    costPerMile
+  };
+}
+
+function renderTopProfileSummary() {
+  const { preferredEquipment, maxDeadhead, costPerMile } = activeProfileCriteria();
+  const equipmentText = preferredEquipment || translated("Any equipment");
+
+  elements.topProfileSummary.textContent =
+    `${translated("Profile applied")}: ${translated(equipmentText)} · ` +
+    `${translated("Maximum deadhead")} ${maxDeadhead.toLocaleString(
+      window.TLA_I18N?.getLocale() || "en-US"
+    )} mi · ` +
+    `${currency(costPerMile)}/${translated("mile")}`;
+}
+
+function clearTopRecommendation(reason = null) {
   currentTopRecommendationId = null;
   elements.topOrigin.textContent = translated("No matching loads");
-  elements.topPickup.textContent = translated("Adjust the search filters to see a recommendation.");
+  elements.topPickup.textContent = translated("Adjust the operating profile or search filters.");
   elements.topDestination.textContent = "—";
   elements.topEquipment.textContent = "—";
   elements.topGross.textContent = "—";
@@ -748,17 +781,29 @@ function clearTopRecommendation() {
   elements.topProfit.textContent = "—";
   elements.topScore.textContent = "—";
   elements.topRecommendationLabel.textContent = translated("No recommendation");
-  elements.topRecommendationReason.textContent = translated(
-    "There are no visible loads under the current filters and deadhead limit."
-  );
+  elements.topRecommendationReason.textContent =
+    reason ||
+    translated("There are no visible loads that match the active operating profile.");
   elements.topRecommendationButton.classList.add("hidden");
   elements.topRecommendationPanel.classList.remove("top-awaiting-rate");
+  renderTopProfileSummary();
+}
+
+function profileEligibleLoads(calculatedLoads) {
+  const { preferredEquipment } = activeProfileCriteria();
+
+  if (!preferredEquipment) return calculatedLoads;
+
+  return calculatedLoads.filter(
+    load => load.equipment === preferredEquipment
+  );
 }
 
 function showTopAwaitingRate(loads) {
-  const nearest = [...loads].sort(
-    (a, b) => Number(a.totalMiles || Infinity) - Number(b.totalMiles || Infinity)
-  )[0];
+  const nearest = [...loads].sort((a, b) => {
+    if (a.deadhead !== b.deadhead) return a.deadhead - b.deadhead;
+    return Number(a.totalMiles || Infinity) - Number(b.totalMiles || Infinity);
+  })[0];
 
   currentTopRecommendationId = nearest?.id ?? null;
   elements.topOrigin.textContent = nearest?.origin || translated("Rate data required");
@@ -775,29 +820,47 @@ function showTopAwaitingRate(loads) {
   elements.topScore.textContent = "—";
   elements.topRecommendationLabel.textContent = translated("Waiting for rate data");
   elements.topRecommendationReason.textContent = translated(
-    "The visible loads do not include gross rates, so profitability cannot be ranked yet."
+    "The profile filters were applied, but the visible matching loads do not include gross rates, so profitability cannot be ranked yet."
   );
   elements.topRecommendationButton.classList.toggle("hidden", !nearest);
   elements.topRecommendationPanel.classList.add("top-awaiting-rate");
+  renderTopProfileSummary();
 }
 
 function renderTopRecommendation(calculatedLoads) {
+  renderTopProfileSummary();
+
   if (!calculatedLoads.length) {
-    clearTopRecommendation();
+    clearTopRecommendation(
+      translated("No loads are within the selected maximum deadhead.")
+    );
     return;
   }
 
-  const loadsWithRates = calculatedLoads.filter(load => load.hasRate);
+  const { preferredEquipment } = activeProfileCriteria();
+  const profileMatches = profileEligibleLoads(calculatedLoads);
+
+  if (!profileMatches.length) {
+    clearTopRecommendation(
+      preferredEquipment
+        ? `${translated("No visible loads match preferred equipment")}: ${translated(preferredEquipment)}.`
+        : translated("There are no visible loads that match the active operating profile.")
+    );
+    return;
+  }
+
+  const loadsWithRates = profileMatches.filter(load => load.hasRate);
 
   if (!loadsWithRates.length) {
-    showTopAwaitingRate(calculatedLoads);
+    showTopAwaitingRate(profileMatches);
     return;
   }
 
   const topLoad = [...loadsWithRates].sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
     if (b.profit !== a.profit) return b.profit - a.profit;
-    return a.deadhead - b.deadhead;
+    if (a.deadhead !== b.deadhead) return a.deadhead - b.deadhead;
+    return b.grossPerTotalMile - a.grossPerTotalMile;
   })[0];
 
   const recommendation = recommendationData(topLoad);
@@ -815,7 +878,9 @@ function renderTopRecommendation(calculatedLoads) {
   elements.topProfit.textContent = currency(topLoad.profit);
   elements.topScore.textContent = String(topLoad.score);
   elements.topRecommendationLabel.textContent = translated(recommendation.label);
-  elements.topRecommendationReason.textContent = translated(recommendation.reason);
+  elements.topRecommendationReason.textContent =
+    `${translated(recommendation.reason)} ` +
+    `${translated("Calculated using")} ${currency(topLoad.costPerMile)}/${translated("mile")}.`;
   elements.topRecommendationButton.classList.remove("hidden");
   elements.topRecommendationPanel.classList.remove("top-awaiting-rate");
 }
@@ -1052,7 +1117,9 @@ async function updateAccountUi() {
     await supabaseClient.auth.signOut();
   });
 
-  if (currentProfile?.equipment) elements.preferredEquipment.value = currentProfile.equipment;
+  if (currentProfile?.equipment && !elements.preferredEquipment.value) {
+    elements.preferredEquipment.value = currentProfile.equipment;
+  }
 
   await loadRemoteOperatingProfile();
   updateAdminVisibility();

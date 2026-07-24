@@ -1853,3 +1853,23 @@ p {
 .top-awaiting-rate .hero-metrics strong {
   color: #f4e6bd;
 }
+
+
+.top-profile-summary {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  color: #c7d8e7;
+  background: rgba(255, 255, 255, 0.055);
+  font-size: 0.72rem;
+  font-weight: 690;
+  line-height: 1.5;
+}
+
+.top-profile-summary::before {
+  content: "✓";
+  margin-right: 6px;
+  color: #66d3a1;
+  font-weight: 900;
+}
