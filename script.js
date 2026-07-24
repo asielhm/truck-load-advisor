@@ -7,8 +7,6 @@ const CONFIG = {
 };
 
 const STORAGE_KEYS = {
-  users: "truckLoadAdvisorDemoUsers",
-  session: "truckLoadAdvisorDemoSession",
   profile: "truckLoadAdvisorOperatingProfile"
 };
 
@@ -399,85 +397,116 @@ function filterLoads() {
   render();
 }
 
-function saveOperatingProfile() {
-  const profile = {
-    costPerMile: elements.costPerMile.value,
-    maxDeadhead: elements.maxDeadhead.value,
-    preferredEquipment: elements.preferredEquipment.value
-  };
-  localStorage.setItem(STORAGE_KEYS.profile, JSON.stringify(profile));
+const SUPABASE_URL = "https://iirptoelyjunzvzoudcj.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_SNS4H3Y85BLrYAoYvsttVA_V4GYPMvc";
+const APP_URL = "https://asielhm.github.io/truck-load-advisor/";
+
+if (!window.supabase?.createClient) {
+  throw new Error("Supabase could not be loaded from the CDN.");
 }
 
-function restoreOperatingProfile() {
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
+);
+
+let currentUser = null;
+let currentProfile = null;
+let profileSaveTimer = null;
+
+function localProfileValues() {
+  return {
+    operating_cost_per_mile: Number(elements.costPerMile.value) || 1.55,
+    max_deadhead: Number(elements.maxDeadhead.value) || 150,
+    preferred_equipment: elements.preferredEquipment.value || null
+  };
+}
+
+function saveLocalOperatingProfile() {
+  localStorage.setItem(
+    STORAGE_KEYS.profile,
+    JSON.stringify({
+      costPerMile: elements.costPerMile.value,
+      maxDeadhead: elements.maxDeadhead.value,
+      preferredEquipment: elements.preferredEquipment.value
+    })
+  );
+}
+
+async function saveOperatingProfile() {
+  saveLocalOperatingProfile();
+
+  if (!currentUser) return;
+
+  window.clearTimeout(profileSaveTimer);
+  profileSaveTimer = window.setTimeout(async () => {
+    const values = localProfileValues();
+
+    const { error } = await supabaseClient
+      .from("driver_profiles")
+      .upsert(
+        {
+          user_id: currentUser.id,
+          ...values,
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: "user_id" }
+      );
+
+    if (error) {
+      console.error("Could not save operating profile:", error);
+    }
+  }, 350);
+}
+
+function restoreLocalOperatingProfile() {
   try {
     const profile = JSON.parse(localStorage.getItem(STORAGE_KEYS.profile) || "null");
     if (!profile) return;
+
     elements.costPerMile.value = profile.costPerMile ?? "1.55";
     elements.maxDeadhead.value = profile.maxDeadhead ?? "150";
     elements.preferredEquipment.value = profile.preferredEquipment ?? "";
   } catch (error) {
-    console.warn("Could not restore operating profile", error);
+    console.warn("Could not restore local operating profile", error);
   }
 }
 
-async function hashPassword(password, salt) {
-  if (!window.crypto?.subtle) {
-    throw new Error("Secure browser hashing is unavailable.");
+async function loadRemoteOperatingProfile() {
+  if (!currentUser) return;
+
+  const { data, error } = await supabaseClient
+    .from("driver_profiles")
+    .select("operating_cost_per_mile, max_deadhead, preferred_equipment")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Could not load operating profile:", error);
+    return;
   }
 
-  const encoder = new TextEncoder();
-  const data = encoder.encode(`${salt}:${password}`);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return [...new Uint8Array(hashBuffer)].map(byte => byte.toString(16).padStart(2, "0")).join("");
-}
-
-function randomSalt() {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return [...bytes].map(byte => byte.toString(16).padStart(2, "0")).join("");
-}
-
-function getUsers() {
-  try {
-    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.users) || "[]");
-    return Array.isArray(users) ? users : [];
-  } catch {
-    return [];
+  if (!data) {
+    await saveOperatingProfile();
+    return;
   }
-}
 
-function saveUsers(users) {
-  localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(users));
-}
-
-function getSession() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.session) || "null");
-  } catch {
-    return null;
-  }
-}
-
-function setSession(user) {
-  const safeSession = {
-    id: user.id,
-    fullName: user.fullName,
-    email: user.email,
-    role: user.role,
-    plan: user.plan,
-    equipment: user.equipment
-  };
-  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(safeSession));
-  updateAccountUi();
-}
-
-function clearSession() {
-  localStorage.removeItem(STORAGE_KEYS.session);
-  updateAccountUi();
+  elements.costPerMile.value = data.operating_cost_per_mile ?? "1.55";
+  elements.maxDeadhead.value = data.max_deadhead ?? "150";
+  elements.preferredEquipment.value = data.preferred_equipment ?? "";
+  saveLocalOperatingProfile();
+  render();
 }
 
 function initials(name) {
-  return name
+  return String(name || "")
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
@@ -485,37 +514,137 @@ function initials(name) {
     .join("");
 }
 
-function updateAccountUi() {
-  const session = getSession();
+async function ensureProfile(user) {
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select(
+      "id, full_name, company_name, role, equipment, plan, subscription_status, trial_ends_at"
+    )
+    .eq("id", user.id)
+    .maybeSingle();
 
-  if (!session) {
+  if (error) {
+    console.error("Could not load account profile:", error);
+  }
+
+  if (data) return data;
+
+  const metadata = user.user_metadata || {};
+  const fallbackProfile = {
+    id: user.id,
+    full_name: metadata.full_name || user.email?.split("@")[0] || "TruckLoad user",
+    company_name: metadata.company_name || null,
+    role: metadata.role || "Owner-operator",
+    equipment: metadata.equipment || "Dry Van",
+    plan: metadata.plan || "Pro"
+  };
+
+  const { data: inserted, error: insertError } = await supabaseClient
+    .from("profiles")
+    .upsert(fallbackProfile, { onConflict: "id" })
+    .select(
+      "id, full_name, company_name, role, equipment, plan, subscription_status, trial_ends_at"
+    )
+    .single();
+
+  if (insertError) {
+    console.error("Could not create account profile:", insertError);
+    return {
+      ...fallbackProfile,
+      subscription_status: "trialing",
+      trial_ends_at: null
+    };
+  }
+
+  return inserted;
+}
+
+function trialText(profile) {
+  if (!profile?.trial_ends_at) return profile?.subscription_status || "Account active";
+
+  const end = new Date(profile.trial_ends_at);
+  const days = Math.max(
+    0,
+    Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  );
+
+  if (profile.subscription_status === "trialing") {
+    return `${days} trial day${days === 1 ? "" : "s"} remaining`;
+  }
+
+  return profile.subscription_status || "Account active";
+}
+
+async function updateAccountUi() {
+  if (!currentUser) {
+    currentProfile = null;
     elements.loginButton.classList.remove("hidden");
     elements.signupButton.classList.remove("hidden");
     elements.accountChip.classList.add("hidden");
     elements.sidebarAccountState.innerHTML = `
-      <p>Create a demo account to save your operating profile and selected plan on this device.</p>
+      <p>Create an account to save your profile securely and access it from another device.</p>
       <button class="text-button" id="sidebarSignupDynamic" type="button">Create account →</button>
     `;
-    document.getElementById("sidebarSignupDynamic")?.addEventListener("click", () => openAuth("register"));
+    document
+      .getElementById("sidebarSignupDynamic")
+      ?.addEventListener("click", () => openAuth("register"));
     return;
   }
+
+  currentProfile = await ensureProfile(currentUser);
+
+  const fullName =
+    currentProfile?.full_name ||
+    currentUser.user_metadata?.full_name ||
+    currentUser.email?.split("@")[0] ||
+    "Account";
 
   elements.loginButton.classList.add("hidden");
   elements.signupButton.classList.add("hidden");
   elements.accountChip.classList.remove("hidden");
-  elements.accountName.textContent = session.fullName;
-  elements.accountInitials.textContent = initials(session.fullName) || "TA";
+  elements.accountName.textContent = fullName;
+  elements.accountInitials.textContent = initials(fullName) || "TA";
+
   elements.sidebarAccountState.innerHTML = `
-    <p><strong>${escapeHtml(session.fullName)}</strong></p>
-    <p>${escapeHtml(session.role)} · ${escapeHtml(session.plan)} plan</p>
-    <p>${escapeHtml(session.email)}</p>
+    <p><strong>${escapeHtml(fullName)}</strong></p>
+    <p>${escapeHtml(currentProfile?.role || "User")} · ${escapeHtml(
+      currentProfile?.plan || "Pro"
+    )} plan</p>
+    <p>${escapeHtml(currentUser.email || "")}</p>
+    <p>${escapeHtml(trialText(currentProfile))}</p>
     <button class="text-button" id="signOutButton" type="button">Sign out →</button>
   `;
-  document.getElementById("signOutButton")?.addEventListener("click", clearSession);
 
-  if (session.equipment) {
-    elements.preferredEquipment.value = session.equipment;
+  document.getElementById("signOutButton")?.addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+  });
+
+  if (currentProfile?.equipment) {
+    elements.preferredEquipment.value = currentProfile.equipment;
   }
+
+  await loadRemoteOperatingProfile();
+}
+
+async function handleSession(session) {
+  currentUser = session?.user || null;
+  await updateAccountUi();
+}
+
+async function initializeAuth() {
+  const { data, error } = await supabaseClient.auth.getSession();
+
+  if (error) {
+    console.error("Could not restore Supabase session:", error);
+  }
+
+  await handleSession(data?.session || null);
+
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
+    window.setTimeout(() => {
+      handleSession(session);
+    }, 0);
+  });
 }
 
 function openModal(modal) {
@@ -660,42 +789,43 @@ elements.registerForm.addEventListener("submit", async event => {
   elements.registerMessage.className = "form-message";
   elements.registerMessage.textContent = "";
 
-  try {
-    const email = document.getElementById("registerEmail").value.trim().toLowerCase();
-    const users = getUsers();
+  const email = document.getElementById("registerEmail").value.trim().toLowerCase();
+  const password = document.getElementById("registerPassword").value;
+  const selectedPlan = elements.selectedPlan.value;
 
-    if (users.some(user => user.email === email)) {
-      throw new Error("An account with this email already exists on this device.");
+  const metadata = {
+    full_name: document.getElementById("fullName").value.trim(),
+    company_name: document.getElementById("companyName").value.trim() || null,
+    role: document.getElementById("accountRole").value,
+    equipment: document.getElementById("registerEquipment").value,
+    plan: selectedPlan
+  };
+
+  const { data, error } = await supabaseClient.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: APP_URL,
+      data: metadata
     }
+  });
 
-    const password = document.getElementById("registerPassword").value;
-    const salt = randomSalt();
-    const passwordHash = await hashPassword(password, salt);
+  if (error) {
+    elements.registerMessage.textContent = error.message;
+    return;
+  }
 
-    const user = {
-      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
-      fullName: document.getElementById("fullName").value.trim(),
-      companyName: document.getElementById("companyName").value.trim(),
-      email,
-      role: document.getElementById("accountRole").value,
-      equipment: document.getElementById("registerEquipment").value,
-      plan: elements.selectedPlan.value,
-      salt,
-      passwordHash,
-      createdAt: new Date().toISOString()
-    };
+  elements.registerMessage.className = "form-message success";
 
-    users.push(user);
-    saveUsers(users);
-    setSession(user);
-    elements.registerMessage.className = "form-message success";
-    elements.registerMessage.textContent = "Demo account created. No payment was collected.";
+  if (data.session) {
+    elements.registerMessage.textContent =
+      "Account created and signed in. Billing has not been activated.";
     elements.registerForm.reset();
-    elements.selectedPlan.value = user.plan;
-
+    elements.selectedPlan.value = selectedPlan;
     window.setTimeout(() => closeModal(elements.authModal), 900);
-  } catch (error) {
-    elements.registerMessage.textContent = error.message || "Could not create the account.";
+  } else {
+    elements.registerMessage.textContent =
+      "Account created. Check your email and confirm the address before signing in.";
   }
 });
 
@@ -704,39 +834,45 @@ elements.signinForm.addEventListener("submit", async event => {
   elements.signinMessage.className = "form-message";
   elements.signinMessage.textContent = "";
 
-  try {
-    const email = document.getElementById("signinEmail").value.trim().toLowerCase();
-    const password = document.getElementById("signinPassword").value;
-    const user = getUsers().find(candidate => candidate.email === email);
+  const email = document.getElementById("signinEmail").value.trim().toLowerCase();
+  const password = document.getElementById("signinPassword").value;
 
-    if (!user) throw new Error("No demo account was found with this email.");
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
 
-    const attemptedHash = await hashPassword(password, user.salt);
-    if (attemptedHash !== user.passwordHash) throw new Error("Incorrect password.");
-
-    setSession(user);
-    elements.signinMessage.className = "form-message success";
-    elements.signinMessage.textContent = "Signed in.";
-    elements.signinForm.reset();
-
-    window.setTimeout(() => closeModal(elements.authModal), 700);
-  } catch (error) {
-    elements.signinMessage.textContent = error.message || "Could not sign in.";
+  if (error) {
+    elements.signinMessage.textContent = error.message;
+    return;
   }
+
+  elements.signinMessage.className = "form-message success";
+  elements.signinMessage.textContent = "Signed in.";
+  elements.signinForm.reset();
+  window.setTimeout(() => closeModal(elements.authModal), 650);
 });
 
-elements.accountChip.addEventListener("click", () => {
-  const session = getSession();
-  if (!session) return;
+elements.accountChip.addEventListener("click", async () => {
+  if (!currentUser) return;
+
+  const fullName =
+    currentProfile?.full_name ||
+    currentUser.user_metadata?.full_name ||
+    currentUser.email ||
+    "Account";
 
   const wantsSignOut = window.confirm(
-    `${session.fullName}\n${session.plan} plan\n\nSign out of this demonstration account?`
+    `${fullName}\n${currentProfile?.plan || "Pro"} plan\n\nSign out?`
   );
-  if (wantsSignOut) clearSession();
+
+  if (wantsSignOut) {
+    await supabaseClient.auth.signOut();
+  }
 });
 
 setupAutocomplete(elements.origin, elements.originSuggestions, "origin");
 setupAutocomplete(elements.destination, elements.destinationSuggestions, "destination");
-restoreOperatingProfile();
-updateAccountUi();
+restoreLocalOperatingProfile();
 loadInitialData();
+initializeAuth();

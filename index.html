@@ -14,7 +14,7 @@
 
 <body>
   <div class="prototype-banner">
-    Prototype mode: accounts and freight shown here are demonstrations. Secure accounts, billing, and authorized live-load feeds will be connected before launch.
+    Supabase authentication is connected. Freight remains demonstration data until authorized live-load feeds are added.
   </div>
 
   <header class="site-header">
@@ -221,7 +221,7 @@
             <div class="card compact-card">
               <h3>Account status</h3>
               <div id="sidebarAccountState">
-                <p>Create a demo account to save your operating profile and selected plan on this device.</p>
+                <p>Create a secure account to save your operating profile and selected plan online.</p>
                 <button class="text-button" id="sidebarSignupButton" type="button">Create account →</button>
               </div>
             </div>
@@ -385,10 +385,10 @@
       </div>
 
       <div id="registerPanel">
-        <p class="eyebrow dark-eyebrow">Prototype registration</p>
+        <p class="eyebrow dark-eyebrow">Secure registration</p>
         <h2 id="authTitle">Create your account</h2>
         <p class="modal-copy">
-          This demonstration stores the account only in this browser. Production accounts will use Supabase authentication.
+          Your account will be created with Supabase Auth. You may need to confirm your email before signing in.
         </p>
 
         <form id="registerForm">
@@ -446,10 +446,10 @@
 
           <label class="checkbox-row">
             <input id="termsAccepted" type="checkbox" required />
-            <span>I understand this is a prototype and no payment will be collected.</span>
+            <span>I understand that billing is not active yet and no payment will be collected.</span>
           </label>
 
-          <button class="button button-primary full-button" type="submit">Create demo account</button>
+          <button class="button button-primary full-button" type="submit">Create account</button>
           <p class="form-message" id="registerMessage"></p>
         </form>
       </div>
@@ -457,7 +457,7 @@
       <div class="hidden" id="signinPanel">
         <p class="eyebrow dark-eyebrow">Welcome back</p>
         <h2>Sign in</h2>
-        <p class="modal-copy">Use an account previously created in this browser.</p>
+        <p class="modal-copy">Use the email and password registered with TruckLoad Advisor.</p>
 
         <form id="signinForm">
           <div class="field">
@@ -483,6 +483,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
 </body>
 </html>
