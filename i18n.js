@@ -15,7 +15,8 @@
     "Create account": "Crear cuenta",
     "Account": "Cuenta",
     "Load profitability intelligence": "Inteligencia de rentabilidad de cargas",
-    "Find freight that improves your whole trip.": "Encontrá cargas que mejoren la rentabilidad de todo tu viaje.",
+    "Find freight that improves your whole trip.":
+      "Encontrá cargas que mejoren la rentabilidad de todo tu viaje.",
     "Search by origin and destination, estimate operating profit, compare deadhead, and evaluate the market you will enter after delivery.":
       "Buscá por origen y destino, estimá la ganancia operativa, compará las millas vacías y evaluá el mercado al que llegarás después de la entrega.",
     "Search loads": "Buscar cargas",
@@ -35,7 +36,8 @@
     "Total miles": "Millas totales",
     "Est. profit": "Ganancia estimada",
     "Excellent fit": "Excelente opción",
-    "Low deadhead · strong reload market": "Pocas millas vacías · buen mercado de recarga",
+    "Low deadhead · strong reload market":
+      "Pocas millas vacías · buen mercado de recarga",
     "Freight search": "Búsqueda de cargas",
     "Search available loads": "Buscar cargas disponibles",
     "Start typing a city or state and select a matching location.":
@@ -48,7 +50,8 @@
     "Minimum gross": "Bruto mínimo",
     "Search": "Buscar",
     "Operating profile": "Perfil operativo",
-    "Used to estimate your load profitability.": "Se utiliza para estimar la rentabilidad de cada carga.",
+    "Used to estimate your load profitability.":
+      "Se utiliza para estimar la rentabilidad de cada carga.",
     "Operating cost / mile": "Costo operativo por milla",
     "Maximum deadhead": "Máximo de millas vacías",
     "Preferred equipment": "Equipo preferido",
@@ -65,55 +68,101 @@
     "Highest estimated profit": "Mayor ganancia estimada",
     "Highest gross rate": "Mayor tarifa bruta",
     "Lowest deadhead": "Menos millas vacías",
+
     "Membership": "Suscripción",
-    "Simple pricing for owner-operators and fleets.": "Precios simples para propietarios-operadores y flotas.",
-    "Launch prices are intended for profitability analysis, alerts, saved preferences, and organization of authorized freight sources.":
-      "Los precios iniciales incluyen análisis de rentabilidad, alertas, preferencias guardadas y organización de fuentes de cargas autorizadas.",
+    "Plans designed for owner-operators and fleets of every size.":
+      "Planes diseñados para propietarios-operadores y flotas de todos los tamaños.",
+    "Start with one truck and upgrade as your operation grows. Each paid plan is assigned to one carrier organization and includes the truck and driver limits shown below.":
+      "Empezá con un camión y mejorá el plan a medida que crece tu operación. Cada plan pago corresponde a una organización transportista e incluye los límites de camiones y conductores indicados.",
     "14-day free trial · Cancel anytime · Prices in USD":
       "Prueba gratis de 14 días · Cancelá cuando quieras · Precios en USD",
     "Starter": "Inicial",
     "/month": "/mes",
-    "For one driver testing smarter load selection.":
-      "Para un conductor que empieza a elegir cargas de forma más inteligente.",
-    "1 driver profile": "1 perfil de conductor",
+    "For an owner-operator starting with one truck.":
+      "Para un propietario-operador que comienza con un camión.",
+    "1 truck and 1 driver": "1 camión y 1 conductor",
     "Load search and filters": "Búsqueda y filtros de cargas",
-    "Profit and deadhead estimates": "Estimaciones de ganancia y millas vacías",
-    "Saved preferences": "Preferencias guardadas",
+    "Basic profit and deadhead estimates":
+      "Estimaciones básicas de ganancia y millas vacías",
+    "Saved operating profile": "Perfil operativo guardado",
     "Email support": "Soporte por correo",
     "Start free trial": "Comenzar prueba gratis",
-    "Recommended": "Recomendado",
-    "For active owner-operators who search freight daily.":
-      "Para propietarios-operadores activos que buscan cargas todos los días.",
+    "Most popular": "Más popular",
+    "For active owner-operators or two-truck operations.":
+      "Para propietarios-operadores activos u operaciones de dos camiones.",
+    "Up to 2 trucks and 2 drivers":
+      "Hasta 2 camiones y 2 conductores",
     "Everything in Starter": "Todo lo incluido en Inicial",
-    "Personalized recommendation score": "Puntuación de recomendación personalizada",
-    "Destination-market analysis": "Análisis del mercado de destino",
-    "Real-time load alerts when connected": "Alertas de cargas en tiempo real cuando estén conectadas",
-    "Multiple authorized source connections": "Varias fuentes autorizadas conectadas",
+    "Personalized recommendation score":
+      "Puntuación de recomendación personalizada",
+    "Fuel, toll, HOS and market analysis":
+      "Análisis de combustible, peajes, HOS y mercado",
+    "Real-time alerts when connected":
+      "Alertas en tiempo real cuando estén conectadas",
+    "Multiple authorized load sources":
+      "Varias fuentes de cargas autorizadas",
     "Fleet": "Flota",
-    "For small fleets coordinating several trucks.":
-      "Para flotas pequeñas que coordinan varios camiones.",
-    "Up to 5 driver profiles": "Hasta 5 perfiles de conductores",
+    "For microfleets coordinating up to five trucks.":
+      "Para microflotas que coordinan hasta cinco camiones.",
+    "Up to 5 trucks and 5 drivers":
+      "Hasta 5 camiones y 5 conductores",
+    "Everything in Pro": "Todo lo incluido en Pro",
     "Shared fleet dashboard": "Panel compartido de flota",
-    "Truck-by-truck recommendations": "Recomendaciones para cada camión",
-    "Team member accounts": "Cuentas para miembros del equipo",
+    "Truck-by-truck recommendations":
+      "Recomendaciones para cada camión",
+    "Driver accounts and trip assignments":
+      "Cuentas de conductores y asignación de viajes",
+    "Priority email support": "Soporte prioritario por correo",
+    "Fleet Plus": "Flota Plus",
+    "For growing small carriers with up to ten trucks.":
+      "Para pequeñas empresas transportistas en crecimiento con hasta diez camiones.",
+    "Up to 10 trucks and 10 drivers":
+      "Hasta 10 camiones y 10 conductores",
+    "Everything in Fleet": "Todo lo incluido en Flota",
+    "Multi-load tour optimization":
+      "Optimización de recorridos con varias cargas",
+    "Live truck location from driver phones":
+      "Ubicación en vivo de los camiones desde los celulares de los conductores",
+    "Team roles and permissions": "Roles y permisos del equipo",
     "Priority support": "Soporte prioritario",
-    "Billing is not active yet. Final plans may change after API, infrastructure, licensing, and support costs are confirmed.":
-      "La facturación todavía no está activa. Los planes finales pueden cambiar cuando se confirmen los costos de API, infraestructura, licencias y soporte.",
+    "Custom": "Personalizado",
+    "For carriers operating eleven or more trucks.":
+      "Para empresas transportistas que operan once o más camiones.",
+    "11 or more trucks": "11 o más camiones",
+    "Everything in Fleet Plus": "Todo lo incluido en Flota Plus",
+    "Custom provider and ELD integrations":
+      "Integraciones personalizadas con proveedores y ELD",
+    "Implementation and onboarding support":
+      "Soporte de implementación e incorporación",
+    "Custom usage limits and permissions":
+      "Límites de uso y permisos personalizados",
+    "Dedicated support options":
+      "Opciones de soporte dedicado",
+    "Request custom access":
+      "Solicitar acceso personalizado",
+    "Billing is not active yet. Fleet limits, API usage allowances and final prices may change after routing, provider licensing, infrastructure and support costs are confirmed.":
+      "La facturación todavía no está activa. Los límites de flota, las asignaciones de uso de API y los precios finales pueden cambiar cuando se confirmen los costos de ruteo, licencias de proveedores, infraestructura y soporte.",
+
     "Live-data architecture": "Arquitectura de datos en vivo",
-    "Prepared for authorized freight integrations.": "Preparado para integraciones de cargas autorizadas.",
+    "Prepared for authorized freight integrations.":
+      "Preparado para integraciones de cargas autorizadas.",
     "GitHub Pages displays the application, while Supabase stores users and normalized loads. Provider credentials must remain in a Supabase Edge Function, never in this public browser code.":
       "GitHub Pages muestra la aplicación y Supabase almacena los usuarios y las cargas normalizadas. Las credenciales de los proveedores deben permanecer en una Edge Function de Supabase, nunca en el código público del navegador.",
-    "Supabase online load table": "Tabla de cargas online en Supabase",
+    "Supabase online load table":
+      "Tabla de cargas online en Supabase",
     "Authenticated users automatically receive available, non-expired loads from the database.":
       "Los usuarios autenticados reciben automáticamente las cargas disponibles y no vencidas de la base de datos.",
-    "Truckstop, 123Loadboard, DAT and RXO": "Truckstop, 123Loadboard, DAT y RXO",
+    "Truckstop, 123Loadboard, DAT and RXO":
+      "Truckstop, 123Loadboard, DAT y RXO",
     "Each integration requires provider approval, credentials, and its permitted display rules.":
       "Cada integración requiere aprobación, credenciales y reglas de visualización autorizadas por el proveedor.",
     "Scheduled synchronization": "Sincronización programada",
     "A protected Edge Function will import, normalize, deduplicate, update, and expire freight automatically.":
       "Una Edge Function protegida importará, normalizará, eliminará duplicados, actualizará y vencerá cargas automáticamente.",
+
     "Administrator": "Administrador",
-    "Manage online loads and sources": "Administrar cargas y fuentes online",
+    "Manage online loads and sources":
+      "Administrar cargas y fuentes online",
     "Your approved administrator account can create or edit loads and request a source synchronization. Provider sync remains inactive until credentials are configured.":
       "Tu cuenta administradora puede crear o editar cargas y solicitar la sincronización de fuentes. La sincronización seguirá inactiva hasta configurar las credenciales.",
     "Admin access": "Acceso de administrador",
@@ -148,12 +197,16 @@
     "Loads stored in Supabase": "Cargas guardadas en Supabase",
     "Loading…": "Cargando…",
     "Refresh": "Actualizar",
+
     "Prototype for a future U.S. carrier decision-support platform.":
       "Prototipo de una futura plataforma de apoyo a decisiones para transportistas de Estados Unidos y Canadá.",
     "Demonstration and development environment. External load data may only be displayed under authorization from its original provider.":
       "Entorno de demostración y desarrollo. Los datos externos de cargas solo pueden mostrarse con autorización de su proveedor original.",
-    "Location autocomplete data derived from": "Datos de autocompletado de ubicaciones derivados de",
-    "licensed under CC BY 4.0.": "con licencia CC BY 4.0.",
+    "Location autocomplete data derived from":
+      "Datos de autocompletado de ubicaciones derivados de",
+    "licensed under CC BY 4.0.":
+      "con licencia CC BY 4.0.",
+
     "Secure registration": "Registro seguro",
     "Create your account": "Creá tu cuenta",
     "Your account is managed by Supabase Auth. You may need to confirm your email before signing in.":
@@ -172,14 +225,19 @@
     "Starter — $29/month": "Inicial — USD 29/mes",
     "Pro — $49/month": "Pro — USD 49/mes",
     "Fleet — $69/month": "Flota — USD 69/mes",
+    "Fleet Plus — $99/month": "Flota Plus — USD 99/mes",
+    "Custom — 11+ trucks": "Personalizado — 11+ camiones",
     "I understand that billing is not active yet and no payment will be collected.":
       "Entiendo que la facturación todavía no está activa y que no se realizará ningún cobro.",
+
     "Welcome back": "Bienvenido nuevamente",
     "Use the email and password registered with TruckLoad Advisor.":
       "Usá el correo y la contraseña registrados en TruckLoad Advisor.",
-    "No matching city found": "No se encontró una ciudad coincidente",
+    "No matching city found":
+      "No se encontró una ciudad coincidente",
     "Data files are missing.": "Faltan archivos de datos.",
-    "No loads match these filters.": "Ninguna carga coincide con estos filtros.",
+    "No loads match these filters.":
+      "Ninguna carga coincide con estos filtros.",
     "Try another city, equipment type, rate, or deadhead limit.":
       "Probá con otra ciudad, tipo de equipo, tarifa o límite de millas vacías.",
     "Open original source": "Abrir fuente original",
@@ -198,12 +256,15 @@
     "Load published.": "Carga publicada.",
     "No online loads yet.": "Todavía no hay cargas online.",
     "Create one with the form.": "Creá una con el formulario.",
-    "Requesting provider sync…": "Solicitando sincronización de proveedores…",
+    "Requesting provider sync…":
+      "Solicitando sincronización de proveedores…",
     "Signed in.": "Sesión iniciada.",
-    "Administrator access required.": "Se requiere acceso de administrador.",
+    "Administrator access required.":
+      "Se requiere acceso de administrador.",
     "Origin and destination must use the format City, ST, Country.":
       "El origen y el destino deben usar el formato Ciudad, Estado/Provincia, País.",
-    "Delete this load permanently?": "¿Eliminar esta carga permanentemente?",
+    "Delete this load permanently?":
+      "¿Eliminar esta carga permanentemente?",
     "Sign out?": "¿Cerrar sesión?",
     "Sign out →": "Cerrar sesión →",
     "Account active": "Cuenta activa",
@@ -233,8 +294,6 @@
       "No hay coordenadas disponibles para esta carga. Editala y volvé a guardarla seleccionando una ubicación de la lista.",
     "Select origin and destination from the location list so their map coordinates can be saved.":
       "Seleccioná el origen y el destino desde la lista para poder guardar sus coordenadas en el mapa.",
-    "Origin and destination must use the format City, ST, Country.":
-      "El origen y el destino deben usar el formato Ciudad, Estado/Provincia, País.",
     "to": "a",
 
     "Box Truck": "Camión caja",
@@ -248,7 +307,8 @@
 
     "Searching available loads": "Buscando cargas disponibles",
     "Evaluating loads": "Evaluando cargas",
-    "Results will update automatically.": "Los resultados se actualizarán automáticamente.",
+    "Results will update automatically.":
+      "Los resultados se actualizarán automáticamente.",
     "View recommended load": "Ver carga recomendada",
     "No matching loads": "No hay cargas coincidentes",
     "Adjust the search filters to see a recommendation.":
@@ -280,10 +340,14 @@
     "Calculated using": "Calculado usando",
 
     "Cost model": "Modelo de costos",
-    "Simple — all-in cost per mile": "Simple — costo total por milla",
-    "Detailed — fuel separated": "Detallado — combustible separado",
-    "Includes fuel in Simple mode.": "Incluye combustible en el modo simple.",
-    "Other operating cost / mile": "Otros costos operativos por milla",
+    "Simple — all-in cost per mile":
+      "Simple — costo total por milla",
+    "Detailed — fuel separated":
+      "Detallado — combustible separado",
+    "Includes fuel in Simple mode.":
+      "Incluye combustible en el modo simple.",
+    "Other operating cost / mile":
+      "Otros costos operativos por milla",
     "Fuel is calculated separately from MPG and diesel price.":
       "El combustible se calcula por separado usando MPG y precio del diésel.",
     "Loaded MPG": "MPG cargado",
@@ -316,13 +380,16 @@
     "Estimated fuel": "Combustible estimado",
     "Fuel price needed": "Falta precio de combustible",
     "Estimated tolls": "Peajes estimados",
-    "Total estimated trip cost": "Costo total estimado del viaje",
+    "Total estimated trip cost":
+      "Costo total estimado del viaje",
     "Destination market": "Mercado de destino",
     "outbound": "salientes",
     "HOS arrival risk": "Riesgo HOS de llegada",
     "Routing data": "Datos de ruta",
-    "Trimble live estimate": "Estimación en vivo de Trimble",
-    "Published/local estimate": "Estimación publicada/local",
+    "Trimble live estimate":
+      "Estimación en vivo de Trimble",
+    "Published/local estimate":
+      "Estimación publicada/local",
     "Low score": "Puntuación baja"
   };
 
@@ -341,157 +408,342 @@
 
   function getInitialLanguage() {
     const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (stored === "en" || stored === "es") return stored;
-    return navigator.language?.toLowerCase().startsWith("es") ? "es" : "en";
+
+    if (stored === "en" || stored === "es") {
+      return stored;
+    }
+
+    return navigator.language?.toLowerCase().startsWith("es")
+      ? "es"
+      : "en";
   }
 
   function interpolate(template, values = {}) {
     return template.replace(/\{(\w+)\}/g, (_, key) =>
-      Object.prototype.hasOwnProperty.call(values, key) ? values[key] : `{${key}}`
+      Object.prototype.hasOwnProperty.call(values, key)
+        ? values[key]
+        : `{${key}}`
     );
   }
 
   function translateDynamic(text) {
     let match;
 
-    match = text.match(/^(\d+) online load(s)? match your filters$/);
-    if (match) return `${match[1]} carga${match[1] === "1" ? "" : "s"} online coincide${match[1] === "1" ? "" : "n"} con tus filtros`;
+    match = text.match(
+      /^(\d+) online load(s)? match your filters$/
+    );
 
-    match = text.match(/^(\d+) demonstration load(s)? match your filters$/);
-    if (match) return `${match[1]} carga${match[1] === "1" ? "" : "s"} de demostración coincide${match[1] === "1" ? "" : "n"} con tus filtros`;
-
-    match = text.match(/^(\d+) load(s)? stored$/);
-    if (match) return `${match[1]} carga${match[1] === "1" ? "" : "s"} guardada${match[1] === "1" ? "" : "s"}`;
-
-    match = text.match(/^(\d+) trial day(s)? remaining$/);
-    if (match) return `Queda${match[1] === "1" ? "" : "n"} ${match[1]} día${match[1] === "1" ? "" : "s"} de prueba`;
-
-    match = text.match(/^(.+) · (Starter|Pro|Fleet) plan$/);
     if (match) {
-      const plan = match[2] === "Starter" ? "Inicial" : match[2] === "Fleet" ? "Flota" : "Pro";
-      return `${match[1]} · plan ${plan}`;
+      return `${match[1]} carga${
+        match[1] === "1" ? "" : "s"
+      } online coincide${
+        match[1] === "1" ? "" : "n"
+      } con tus filtros`;
     }
 
-    match = text.match(/^Source: (.+) · Original reference: (.+)$/);
-    if (match) return `Fuente: ${match[1]} · Referencia original: ${match[2]}`;
+    match = text.match(
+      /^(\d+) demonstration load(s)? match your filters$/
+    );
+
+    if (match) {
+      return `${match[1]} carga${
+        match[1] === "1" ? "" : "s"
+      } de demostración coincide${
+        match[1] === "1" ? "" : "n"
+      } con tus filtros`;
+    }
+
+    match = text.match(/^(\d+) load(s)? stored$/);
+
+    if (match) {
+      return `${match[1]} carga${
+        match[1] === "1" ? "" : "s"
+      } guardada${match[1] === "1" ? "" : "s"}`;
+    }
+
+    match = text.match(/^(\d+) trial day(s)? remaining$/);
+
+    if (match) {
+      return `Queda${
+        match[1] === "1" ? "" : "n"
+      } ${match[1]} día${
+        match[1] === "1" ? "" : "s"
+      } de prueba`;
+    }
+
+    match = text.match(
+      /^(.+) · (Starter|Pro|Fleet|Fleet Plus|Custom) plan$/
+    );
+
+    if (match) {
+      const translatedPlans = {
+        Starter: "Inicial",
+        Pro: "Pro",
+        Fleet: "Flota",
+        "Fleet Plus": "Flota Plus",
+        Custom: "Personalizado"
+      };
+
+      return `${match[1]} · plan ${
+        translatedPlans[match[2]] || match[2]
+      }`;
+    }
+
+    match = text.match(
+      /^Source: (.+) · Original reference: (.+)$/
+    );
+
+    if (match) {
+      return `Fuente: ${match[1]} · Referencia original: ${match[2]}`;
+    }
 
     match = text.match(/^Last sync (.+)$/);
-    if (match) return `Última sincronización: ${match[1]}`;
+
+    if (match) {
+      return `Última sincronización: ${match[1]}`;
+    }
 
     match = text.match(/^Credentials are present, but (.+)$/);
-    if (match) return `Las credenciales están presentes, pero ${match[1]}`;
 
-    match = text.match(/^Strong estimated return, (\d+) deadhead miles, and a favorable destination market\.(.*)$/);
-    if (match) return `Buen retorno estimado, ${match[1]} millas vacías y un mercado de destino favorable.${translateRateSuffix(match[2])}`;
+    if (match) {
+      return `Las credenciales están presentes, pero ${match[1]}`;
+    }
 
-    match = text.match(/^Potentially useful, but review deadhead, appointment details, and destination conditions\.(.*)$/);
-    if (match) return `Puede ser conveniente, pero revisá las millas vacías, los turnos y las condiciones del destino.${translateRateSuffix(match[1])}`;
+    match = text.match(
+      /^Strong estimated return, (\d+) deadhead miles, and a favorable destination market\.(.*)$/
+    );
 
-    match = text.match(/^The estimated margin or destination outlook may not justify this trip under your current profile\.(.*)$/);
-    if (match) return `El margen estimado o el mercado de destino pueden no justificar este viaje con tu perfil actual.${translateRateSuffix(match[1])}`;
+    if (match) {
+      return `Buen retorno estimado, ${match[1]} millas vacías y un mercado de destino favorable.${translateRateSuffix(
+        match[2]
+      )}`;
+    }
 
-    match = text.match(/^Gross per total mile: \$([0-9.]+)\. Net per total mile: \$([0-9.]+)\.$/);
-    if (match) return `Bruto por milla total: USD ${match[1]}. Neto por milla total: USD ${match[2]}.`;
+    match = text.match(
+      /^Potentially useful, but review deadhead, appointment details, and destination conditions\.(.*)$/
+    );
 
-    match = text.match(/^An account with this email already exists/);
-    if (match) return "Ya existe una cuenta con este correo electrónico.";
+    if (match) {
+      return `Puede ser conveniente, pero revisá las millas vacías, los turnos y las condiciones del destino.${translateRateSuffix(
+        match[1]
+      )}`;
+    }
+
+    match = text.match(
+      /^The estimated margin or destination outlook may not justify this trip under your current profile\.(.*)$/
+    );
+
+    if (match) {
+      return `El margen estimado o el mercado de destino pueden no justificar este viaje con tu perfil actual.${translateRateSuffix(
+        match[1]
+      )}`;
+    }
+
+    match = text.match(
+      /^Gross per total mile: \$([0-9.]+)\. Net per total mile: \$([0-9.]+)\.$/
+    );
+
+    if (match) {
+      return `Bruto por milla total: USD ${match[1]}. Neto por milla total: USD ${match[2]}.`;
+    }
+
+    match = text.match(
+      /^An account with this email already exists/
+    );
+
+    if (match) {
+      return "Ya existe una cuenta con este correo electrónico.";
+    }
 
     match = text.match(/^Invalid login credentials$/i);
-    if (match) return "Correo o contraseña incorrectos.";
+
+    if (match) {
+      return "Correo o contraseña incorrectos.";
+    }
 
     match = text.match(/^Email not confirmed$/i);
-    if (match) return "El correo todavía no fue confirmado.";
 
-    match = text.match(/^Password should be at least (\d+) characters/i);
-    if (match) return `La contraseña debe tener al menos ${match[1]} caracteres.`;
+    if (match) {
+      return "El correo todavía no fue confirmado.";
+    }
+
+    match = text.match(
+      /^Password should be at least (\d+) characters/i
+    );
+
+    if (match) {
+      return `La contraseña debe tener al menos ${match[1]} caracteres.`;
+    }
 
     return null;
   }
 
   function translateRateSuffix(suffix) {
-    if (!suffix) return "";
-    const match = suffix.match(/\s*Gross per total mile: \$([0-9.]+)\. Net per total mile: \$([0-9.]+)\./);
-    if (!match) return suffix;
+    if (!suffix) {
+      return "";
+    }
+
+    const match = suffix.match(
+      /\s*Gross per total mile: \$([0-9.]+)\. Net per total mile: \$([0-9.]+)\./
+    );
+
+    if (!match) {
+      return suffix;
+    }
+
     return ` Bruto por milla total: USD ${match[1]}. Neto por milla total: USD ${match[2]}.`;
   }
 
   function translateString(text) {
-    if (currentLanguage !== "es") return text;
+    if (currentLanguage !== "es") {
+      return text;
+    }
+
     return es[text] ?? translateDynamic(text) ?? text;
   }
 
   function translateTextNode(node) {
-    if (!node.nodeValue || !node.nodeValue.trim()) return;
-    if (node.parentElement?.closest("[data-no-i18n]")) return;
+    if (!node.nodeValue || !node.nodeValue.trim()) {
+      return;
+    }
 
-    if (!originalText.has(node)) originalText.set(node, node.nodeValue);
+    if (node.parentElement?.closest("[data-no-i18n]")) {
+      return;
+    }
+
+    if (!originalText.has(node)) {
+      originalText.set(node, node.nodeValue);
+    }
+
     const source = originalText.get(node);
 
     const leading = source.match(/^\s*/)?.[0] ?? "";
     const trailing = source.match(/\s*$/)?.[0] ?? "";
     const core = source.trim();
-    const translated = currentLanguage === "es" ? translateString(core) : core;
+
+    const translated =
+      currentLanguage === "es"
+        ? translateString(core)
+        : core;
+
     const next = `${leading}${translated}${trailing}`;
 
-    if (node.nodeValue !== next) node.nodeValue = next;
+    if (node.nodeValue !== next) {
+      node.nodeValue = next;
+    }
   }
 
   function translateAttributes(root = document) {
-    root.querySelectorAll?.("input[placeholder], textarea[placeholder]").forEach(element => {
-      if (!element.dataset.originalPlaceholder) {
-        element.dataset.originalPlaceholder = element.getAttribute("placeholder") || "";
-      }
-      const original = element.dataset.originalPlaceholder;
-      element.setAttribute(
-        "placeholder",
-        currentLanguage === "es" ? (attrMap[original] ?? es[original] ?? original) : original
-      );
-    });
+    root
+      .querySelectorAll?.(
+        "input[placeholder], textarea[placeholder]"
+      )
+      .forEach(element => {
+        if (!element.dataset.originalPlaceholder) {
+          element.dataset.originalPlaceholder =
+            element.getAttribute("placeholder") || "";
+        }
+
+        const original =
+          element.dataset.originalPlaceholder;
+
+        element.setAttribute(
+          "placeholder",
+          currentLanguage === "es"
+            ? attrMap[original] ??
+                es[original] ??
+                original
+            : original
+        );
+      });
 
     root.querySelectorAll?.("[title]").forEach(element => {
-      if (!element.dataset.originalTitle) element.dataset.originalTitle = element.title;
+      if (!element.dataset.originalTitle) {
+        element.dataset.originalTitle = element.title;
+      }
+
       const original = element.dataset.originalTitle;
-      element.title = currentLanguage === "es" ? translateString(original) : original;
+
+      element.title =
+        currentLanguage === "es"
+          ? translateString(original)
+          : original;
     });
 
-    root.querySelectorAll?.("[aria-label]").forEach(element => {
-      if (!element.dataset.originalAriaLabel) {
-        element.dataset.originalAriaLabel = element.getAttribute("aria-label") || "";
-      }
-      const original = element.dataset.originalAriaLabel;
-      element.setAttribute(
-        "aria-label",
-        currentLanguage === "es" ? translateString(original) : original
-      );
-    });
+    root
+      .querySelectorAll?.("[aria-label]")
+      .forEach(element => {
+        if (!element.dataset.originalAriaLabel) {
+          element.dataset.originalAriaLabel =
+            element.getAttribute("aria-label") || "";
+        }
+
+        const original =
+          element.dataset.originalAriaLabel;
+
+        element.setAttribute(
+          "aria-label",
+          currentLanguage === "es"
+            ? translateString(original)
+            : original
+        );
+      });
   }
 
   function translateTree(root = document.body) {
-    if (!root) return;
+    if (!root) {
+      return;
+    }
 
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const walker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_TEXT
+    );
+
     const nodes = [];
-    while (walker.nextNode()) nodes.push(walker.currentNode);
+
+    while (walker.nextNode()) {
+      nodes.push(walker.currentNode);
+    }
+
     nodes.forEach(translateTextNode);
-    translateAttributes(root === document.body ? document : root);
+
+    translateAttributes(
+      root === document.body ? document : root
+    );
   }
 
   function setLanguage(language, persist = true) {
-    if (language !== "en" && language !== "es") return;
+    if (language !== "en" && language !== "es") {
+      return;
+    }
+
     currentLanguage = language;
     document.documentElement.lang = language;
 
-    if (persist) localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    if (persist) {
+      localStorage.setItem(
+        LANGUAGE_STORAGE_KEY,
+        language
+      );
+    }
 
-    const select = document.getElementById("languageSelect");
-    if (select) select.value = language;
+    const select =
+      document.getElementById("languageSelect");
+
+    if (select) {
+      select.value = language;
+    }
 
     document.title =
       language === "es"
         ? "TruckLoad Advisor | Cargas rentables"
         : "TruckLoad Advisor";
 
-    const meta = document.querySelector('meta[name="description"]');
+    const meta = document.querySelector(
+      'meta[name="description"]'
+    );
+
     if (meta) {
       meta.content =
         language === "es"
@@ -502,24 +754,33 @@
     translateTree(document.body);
 
     window.dispatchEvent(
-      new CustomEvent("tla:languagechange", { detail: { language } })
+      new CustomEvent("tla:languagechange", {
+        detail: { language }
+      })
     );
   }
 
   function getLocale() {
-    return currentLanguage === "es" ? "es-AR" : "en-US";
+    return currentLanguage === "es"
+      ? "es-AR"
+      : "en-US";
   }
 
   const nativeAlert = window.alert.bind(window);
   const nativeConfirm = window.confirm.bind(window);
 
-  window.alert = message => nativeAlert(translateString(String(message)));
-  window.confirm = message => nativeConfirm(
-    String(message)
-      .split("\n")
-      .map(line => translateString(line))
-      .join("\n")
-  );
+  window.alert = message =>
+    nativeAlert(
+      translateString(String(message))
+    );
+
+  window.confirm = message =>
+    nativeConfirm(
+      String(message)
+        .split("\n")
+        .map(line => translateString(line))
+        .join("\n")
+    );
 
   const observer = new MutationObserver(records => {
     for (const record of records) {
@@ -530,7 +791,9 @@
       for (const node of record.addedNodes) {
         if (node.nodeType === Node.TEXT_NODE) {
           translateTextNode(node);
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
+        } else if (
+          node.nodeType === Node.ELEMENT_NODE
+        ) {
           translateTree(node);
         }
       }
@@ -542,27 +805,42 @@
     getLanguage: () => currentLanguage,
     getLocale,
     t: (key, values) => {
-      const base = currentLanguage === "es" ? (es[key] ?? key) : key;
+      const base =
+        currentLanguage === "es"
+          ? es[key] ?? key
+          : key;
+
       return interpolate(base, values);
     },
     translateString
   };
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const select = document.getElementById("languageSelect");
-    if (select) {
-      select.value = currentLanguage;
-      select.addEventListener("change", event => {
-        setLanguage(event.target.value);
-      });
-    }
+  document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+      const select =
+        document.getElementById("languageSelect");
 
-    translateTree(document.body);
-    observer.observe(document.body, {
-      subtree: true,
-      childList: true,
-      characterData: true
-    });
-    setLanguage(currentLanguage, false);
-  });
+      if (select) {
+        select.value = currentLanguage;
+
+        select.addEventListener(
+          "change",
+          event => {
+            setLanguage(event.target.value);
+          }
+        );
+      }
+
+      translateTree(document.body);
+
+      observer.observe(document.body, {
+        subtree: true,
+        childList: true,
+        characterData: true
+      });
+
+      setLanguage(currentLanguage, false);
+    }
+  );
 })();
